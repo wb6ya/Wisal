@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول والتسجيل</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f2f5; margin: 0; }
+        .container { display: flex; gap: 4rem; }
+        .form-container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 320px; }
+        input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; }
+        .register-btn { background-color: #42b72a; color: white; }
+        .login-btn { background-color: #1877f2; color: white; }
+        h2 { text-align: center; color: #1c1e21; }
+        .message { text-align: center; margin-top: 1rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-container">
+        <form id="registerForm">
+            <h2>إنشاء حساب جديد</h2>
+            <input type="text" id="registerCompanyName" placeholder="اسم الشركة" required>
+            <input type="email" id="registerEmail" placeholder="البريد الإلكتروني" required>
+            <input type="password" id="registerPassword" placeholder="كلمة المرور" required>
+            <button type="submit" class="register-btn">تسجيل</button>
+            <p class="message" id="registerMessage"></p>
+        </form>
+    </div>
+
+    <div class="form-container">
+        <form id="loginForm">
+            <h2>تسجيل الدخول</h2>
+            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" required>
+            <input type="password" id="loginPassword" placeholder="كلمة المرور" required>
+            <button type="submit" class="login-btn">دخول</button>
+            <p class="message" id="loginMessage"></p>
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- منطق نموذج التسجيل ---
+    document.getElementById('registerForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const companyName = document.getElementById('registerCompanyName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        const messageEl = document.getElementById('registerMessage');
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ companyName, email, password })
+            });
+            const data = await response.json();
+            messageEl.textContent = data.message;
+            messageEl.style.color = response.ok ? 'green' : 'red';
+        } catch (error) {
+            messageEl.textContent = 'حدث خطأ في الاتصال بالخادم';
+            messageEl.style.color = 'red';
+        }
+    });
+
+    // --- منطق نموذج تسجيل الدخول ---
+document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const messageEl = document.getElementById('loginMessage');
+
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+
+        // ---- هذا هو التعديل ----
+        // تحقق أولاً إذا كان الطلب ناجحًا وإذا كان رابط التوجيه موجودًا
+        if (response.ok && data.redirectUrl) {
+            window.location.href = data.redirectUrl;
+        } else {
+            // إذا فشل، اعرض رسالة الخطأ
+            messageEl.textContent = data.message;
+            messageEl.style.color = 'red';
+        }
+    } catch (error) {
+        messageEl.textContent = 'حدث خطأ في الاتصال بالخادم';
+        messageEl.style.color = 'red';
+    }
+});
+</script>
+
+</body>
+</html>

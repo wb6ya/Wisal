@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 2rem; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #1c1e21; }
+        form { margin-top: 1.5rem; }
+        label { font-weight: bold; display: block; margin-bottom: 0.5rem; }
+        input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { padding: 0.75rem 1.5rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; background-color: #1877f2; color: white; }
+        .message { margin-top: 1rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>أهلاً بك في لوحة التحكم</h1>
+        <p>هذه هي صفحتك المحمية.</p>
+        <hr>
+
+        <h2>إعدادات ربط واتساب</h2>
+        <form id="settingsForm">
+            <label for="accessToken">Access Token:</label>
+            <input type="text" id="accessToken" name="accessToken" required>
+
+            <label for="phoneNumberId">Phone Number ID:</label>
+            <input type="text" id="phoneNumberId" name="phoneNumberId" required>
+
+            <button type="submit">حفظ الإعدادات</button>
+            <p class="message" id="formMessage"></p>
+        </form>
+    </div>
+
+<script>
+    document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const accessToken = document.getElementById('accessToken').value;
+        const phoneNumberId = document.getElementById('phoneNumberId').value;
+        const messageEl = document.getElementById('formMessage');
+
+        const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken, phoneNumberId })
+        });
+
+        const data = await response.json();
+        messageEl.textContent = data.message;
+        messageEl.style.color = response.ok ? 'green' : 'red';
+    });
+</script>
+</body>
+</html>

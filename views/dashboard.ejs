@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 2rem; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1c1e21; }
+        form { margin-top: 1.5rem; border-top: 1px solid #ddd; padding-top: 1.5rem; }
+        label { font-weight: bold; display: block; margin-bottom: 0.5rem; }
+        input[type="text"] { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input[readonly] { background-color: #eee; cursor: not-allowed; }
+        button { padding: 0.75rem 1.5rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; background-color: #1877f2; color: white; }
+        .message { margin-top: 1rem; font-weight: bold; }
+        .webhook-section { margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1.5rem; }
+        .info-text { font-size: 0.9em; color: #666; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>أهلاً بك, <%= company.companyName %></h1>
+        <p>هذه هي صفحة الإعدادات والتحكم الخاصة بك.</p>
+        
+        <form id="settingsForm">
+            <h2>إعدادات ربط واتساب</h2>
+            <label for="accessToken">Access Token:</label>
+            <input type="text" id="accessToken" name="accessToken" value="<%= company.whatsapp && company.whatsapp.accessToken ? company.whatsapp.accessToken : '' %>" required>
+
+            <label for="phoneNumberId">Phone Number ID:</label>
+            <input type="text" id="phoneNumberId" name="phoneNumberId" value="<%= company.whatsapp && company.whatsapp.phoneNumberId ? company.whatsapp.phoneNumberId : '' %>" required>
+            
+            <label for="verifyToken">Verify Token:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="verifyToken" name="verifyToken" value="<%= company.whatsapp && company.whatsapp.verifyToken ? company.whatsapp.verifyToken : '' %>" required style="flex-grow: 1; margin-bottom: 0;">
+                <button type="button" id="generateTokenBtn" style="background-color: #6c757d;">إنشاء</button>
+            </div>
+            <p class="info-text" style="margin-top: 0.5rem;">رمز سري بينك وبين واتساب للتأكد من أمان الـ Webhook.</p>
+
+
+            <button type="submit">حفظ الإعدادات</button>
+            <p class="message" id="formMessage"></p>
+        </form>
+
+        <div class="webhook-section">
+            <h3>رابط الـ Webhook الفريد الخاص بك</h3>
+            <p class="info-text">انسخ هذا الرابط والصقه في حقل "Callback URL" في إعدادات تطبيقك على ميتا.</p>
+            <input type='text' value='<%= webhookUrl %>' readonly>
+        </div>
+    </div>
+
+<script>
+    // --- Logic for the "Generate" button ---
+    document.getElementById('generateTokenBtn').addEventListener('click', function() {
+        // Generate a secure random string
+        const randomString = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        // Set the value of the input field
+        document.getElementById('verifyToken').value = randomString;
+    });
+
+    // --- Logic for the "Save Settings" form ---
+    document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const accessToken = document.getElementById('accessToken').value;
+        const phoneNumberId = document.getElementById('phoneNumberId').value;
+        const verifyToken = document.getElementById('verifyToken').value;
+        const messageEl = document.getElementById('formMessage');
+
+        const response = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken, phoneNumberId, verifyToken })
+        });
+
+        const data = await response.json();
+        messageEl.textContent = data.message;
+        messageEl.style.color = response.ok ? 'green' : 'red';
+    });
+</script>
+</body>
+</html>

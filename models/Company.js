@@ -2,10 +2,17 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
+// models/Company.js
+
 const CompanySchema = new mongoose.Schema({
     companyName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }
+    password: { type: String, required: true },
+    whatsapp: {
+        accessToken: { type: String },
+        phoneNumberId: { type: String },
+        verifyToken: { type: String } // <-- THIS IS THE MISSING LINE
+    }
 }, { timestamps: true });
 
 // أمر وسيط لتجزئة (تشفير) كلمة المرور قبل الحفظ
