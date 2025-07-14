@@ -16,10 +16,20 @@ const messageSchema = new mongoose.Schema({
         type: String,
         default: 'text' // e.g., 'text', 'image', 'document'
     },
+    wabaMessageId: { 
+        type: String, 
+        unique: true, // يجب أن يكون فريدًا
+        sparse: true // يسمح بوجود قيم فارغة متعددة (للرسائل الواردة من العملاء)
+    },
     content: {
         type: String,
         required: true
     },
-}, { timestamps: true });
+    status: {
+        type: String,
+        enum: ['sent', 'delivered', 'read'], // القيم المسموح بها فقط
+        default: 'sent' // القيمة الافتراضية عند إنشاء الرسالة
+    }
+},{ timestamps: true });
 
 module.exports = mongoose.model('Message', messageSchema);

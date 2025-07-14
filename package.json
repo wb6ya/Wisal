@@ -18,12 +18,14 @@
   "homepage": "https://github.com/wb6ya/whatsapp-saas#readme",
   "description": "",
   "dependencies": {
+    "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "connect-mongo": "^5.1.0",
     "dotenv": "^17.2.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
-    "mongoose": "^8.16.3"
+    "mongoose": "^8.16.3",
+    "socket.io": "^4.8.1"
   }
 }
