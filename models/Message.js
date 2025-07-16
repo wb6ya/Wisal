@@ -25,6 +25,9 @@ const messageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    filename: { // <-- Add this new field
+        type: String 
+    },
     status: {
         type: String,
         enum: ['sent', 'delivered', 'read'], // القيم المسموح بها فقط

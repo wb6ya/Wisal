@@ -93,6 +93,45 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         messageEl.style.color = 'red';
     }
 });
+
+// Find or create this block in public/js/dashboard.js
+
+// Make sure your login form in index.html has the id "loginForm"
+const loginForm = document.getElementById('loginForm');
+
+if (loginForm) {
+    loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault(); // Stop the page from refreshing
+        
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const messageEl = document.getElementById('loginMessage');
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            // --- THIS IS WHERE YOUR CODE GOES ---
+            // It checks if the login was successful and if the server sent a redirect URL
+            if (response.ok && data.redirectUrl) {
+                // If yes, it redirects the browser to the dashboard
+                window.location.href = data.redirectUrl;
+            } else {
+                // If not, it shows an error message
+                messageEl.textContent = data.message || 'Login failed.';
+                messageEl.style.color = 'red';
+            }
+
+        } catch (error) {
+            messageEl.textContent = 'An error occurred while connecting to the server.';
+            messageEl.style.color = 'red';
+        }
+    });
+}
 </script>
 
 </body>

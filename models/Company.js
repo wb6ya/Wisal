@@ -1,8 +1,5 @@
-// models/Company.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-
-// models/Company.js
 
 const CompanySchema = new mongoose.Schema({
     companyName: { type: String, required: true },
@@ -11,18 +8,19 @@ const CompanySchema = new mongoose.Schema({
     whatsapp: {
         accessToken: { type: String },
         phoneNumberId: { type: String },
-        verifyToken: { type: String } // <-- THIS IS THE MISSING LINE
+        verifyToken: { type: String }
     }
 }, { timestamps: true });
 
-// أمر وسيط لتجزئة (تشفير) كلمة المرور قبل الحفظ
 CompanySchema.pre('save', async function(next) {
-    if (!this.isModified('password')) {
-        return next();
+    if (!this.isModified('password')) return next();
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
     }
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
 });
 
 module.exports = mongoose.model('Company', CompanySchema);
