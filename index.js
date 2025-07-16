@@ -10,6 +10,8 @@ const http = require('http');
 const { Server } = require("socket.io");
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() }); // لإعداد multer
 
 // 2. CONFIGURATIONS
 cloudinary.config({
@@ -176,38 +178,64 @@ app.post('/api/conversations/:id/reply', isAuthenticated, async (req, res) => {
     }
 });
 
-app.post('/api/conversations/:id/send-image', isAuthenticated, async (req, res) => {
+// في index.js، قسم API ROUTES
+app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
     try {
         const company = await Company.findById(req.session.companyId);
         const conversation = await Conversation.findById(req.params.id);
-        const { imageUrl } = req.body;
-        if (!company || !conversation || !imageUrl) return res.status(400).json({ message: "Missing data" });
+        if (!req.file || !company || !conversation) {
+            return res.status(400).json({ message: "Missing file or required data" });
+        }
 
+        const file = req.file;
+        const resourceType = file.mimetype.startsWith('image/') ? 'image' : 'raw';
+        const originalFilename = file.originalname;
+
+        // 1. رفع الملف من ذاكرة الخادم إلى Cloudinary
+        const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream({
+                resource_type: resourceType,
+                public_id: originalFilename,
+                upload_preset: 'whatsapp_files'
+            }, (error, result) => {
+                if (error) reject(error); else resolve(result);
+            });
+            uploadStream.end(file.buffer);
+        });
+
+        const mediaUrl = cloudinaryUploadResponse.secure_url;
+
+        // 2. إنشاء طلب API بناءً على نوع الملف
         const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
-        const apiRequestData = {
-            messaging_product: "whatsapp",
-            to: conversation.customerPhone,
-            type: "image",
-            image: { link: imageUrl }
-        };
+        let apiRequestData;
+        if (resourceType === 'image') {
+            apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "image", image: { link: mediaUrl } };
+        } else {
+            apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "document", document: { link: mediaUrl, filename: originalFilename } };
+        }
+
+        // 3. إرسال الطلب إلى ميتا
         const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
         const metaResponse = await axios.post(whatsappApiUrl, apiRequestData, { headers });
         const metaMessageId = metaResponse.data.messages[0].id;
 
+        // 4. حفظ نسخة في قاعدة بياناتنا
         const sentMessage = new Message({
             conversationId: req.params.id,
             sender: 'agent',
-            messageType: 'image',
-            content: imageUrl,
+            messageType: resourceType,
+            content: mediaUrl,
+            filename: originalFilename,
             wabaMessageId: metaMessageId
         });
         await sentMessage.save();
+
         res.status(200).json(sentMessage);
     } catch (error) {
-        res.status(500).json({ message: 'Failed to send image message' });
+        console.error("Error sending media:", error.response ? error.response.data : error);
+        res.status(500).json({ message: 'Failed to send media' });
     }
 });
-
 // 7. WEBHOOK ROUTES
 app.get('/webhook/:companyId', async (req, res) => {
     try {

@@ -1,158 +1,182 @@
-/* --- Global Settings & Theme --- */
+/*
+ * Filename: dashboard.css
+ * Description: A professional and clean "Teal & White" theme for the WhatsApp SaaS dashboard.
+ * Author: Google Gemini
+ * Version: 5.0 (Final)
+*/
+
+/* --- 1. Design System & Global Styles --- */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
 :root {
-    --body-bg: #f4f7f9;
+    --font-family-base: 'Tajawal', sans-serif;
+    --body-bg: #f7f8fa;
     --container-bg: #ffffff;
-    --sidebar-bg: #fdfdff;
-    --chat-bg: #e5ddd5;
+    --sidebar-bg: #ffffff;
+    --chat-bg-pattern: url('https://i.imgur.com/y4H2bW6.png');
     --header-bg: #f8f9fa;
     --text-primary: #2c3e50;
-    --text-secondary: #8d99ae;
-    --accent-color: #3498db;
-    --agent-bubble-bg: #3498db;
+    --text-secondary: #8492a6;
+    --accent-color: #007a5a; /* A deep, professional teal */
+    --agent-bubble-bg: #e0f2f1; /* A very light teal for sent messages */
     --customer-bubble-bg: #f1f3f5;
     --border-color: #e9edef;
     --shadow-color: rgba(44, 62, 80, 0.1);
+    --hover-bg-color: #f0f5ff;
 }
 
 body {
     background-color: var(--body-bg);
     color: var(--text-primary);
-    font-family: 'Tajawal', sans-serif;
+    font-family: var(--font-family-base);
     overflow: hidden;
 }
 
-/* --- Main Layout --- */
+/* --- 2. Main Layout & Structure --- */
 .main-app-container {
     height: 100vh;
     padding: 1.5rem;
 }
+
 .chat-container {
     height: 100%;
-    box-shadow: 0 8px 30px var(--shadow-color);
+    box-shadow: 0 10px 40px var(--shadow-color);
     border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    display: flex; /* Use flexbox for the main container */
+    border-radius: 1rem;
 }
 
-/* --- Left & Right Columns --- */
-.conversations-list-container {
+/* --- 3. Components --- */
+
+/* 3.1 Conversation List (Left Panel) */
+.conversations-list {
+    background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: var(--sidebar-bg);
-    border-left: 1px solid var(--border-color);
+    border-top-right-radius: 1rem;
+    border-bottom-right-radius: 1rem;
 }
+
+.conv-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.list-group {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    padding: 1rem 1.25rem;
+}
+
+.list-group-item:hover {
+    background-color: var(--hover-bg-color);
+}
+
+.list-group-item.active {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+    border-left: 5px solid #005a41;
+}
+
+.list-group-item.active h5, .list-group-item.active p {
+    color: white !important;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 3.2 Chat Window (Right Panel) */
 .chat-window-container {
     display: flex;
     flex-direction: column;
     height: 100%;
 }
 
-.conv-header, .chat-header {
-    flex-shrink: 0; /* Header will not shrink */
+.chat-header {
+    background-color: var(--container-bg);
     border-bottom: 1px solid var(--border-color);
-    background-color: var(--header-bg);
-}
-
-/* --- SCROLLING FIX --- */
-.list-group, .messages-area {
-    overflow-y: auto; /* Enable vertical scrolling */
-    flex-grow: 1; /* Allow these areas to fill the remaining space */
-    overflow-x: hidden;
-}
-
-.messages-area {
-    display: flex;
-    flex-direction: column-reverse;
-    overflow-y: auto;
-    flex-grow: 1;
-    padding: 1rem 2rem;
-    background-color: var(--chat-bg);
-    min-height: 100px; /* <-- Add this line */
-}
-
-/* --- Conversation List Items --- */
-.list-group-item {
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    transition: all 0.2s ease-in-out;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-.list-group-item:hover {
-    background-color: #f8f9fa;
-    transform: translateX(-4px);
-}
-.list-group-item.active {
-    background-color: var(--accent-color) !important;
-    color: white !important;
-    border-left: 4px solid #2980b9;
-}
-.list-group-item.active h5, .list-group-item.active p {
-    color: white !important;
-}
-div#chat-header-content {
-    gap: 10px;
-}
-.avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background-color: var(--text-secondary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
     flex-shrink: 0;
 }
 
-/* --- Message Bubbles & Animations --- */
+.messages-area {
+    background-color: var(--chat-bg);
+    background-image: var(--chat-bg-pattern);
+    background-blend-mode: multiply;
+    opacity: 0.9;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 1.5rem 3rem;
+}
+
+/* 3.3 Message Bubbles & Animations */
 @keyframes slideUpFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 .message-bubble {
-    max-width: 70%;
     padding: 12px 18px;
     border-radius: 20px;
     margin-bottom: 10px;
-    line-height: 1.5;
+    max-width: 65%;
+    line-height: 1.6;
     word-wrap: break-word;
-    animation: slideUpFadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    animation: slideUpFadeIn 0.3s ease-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
+
 .customer-message {
     background-color: var(--customer-bubble-bg);
-    align-self: flex-end;
+    color: var(--text-primary);
+    align-self: flex-start;
     border-bottom-left-radius: 5px;
 }
+
 .agent-message {
     background-color: var(--agent-bubble-bg);
-    color: white;
-    align-self: flex-start;
+    color: var(--text-primary);
+    align-self: flex-end;
     border-bottom-right-radius: 5px;
 }
 
-/* --- Meta Info (Timestamp, Ticks) --- */
+/* 3.4 Meta Info (Timestamp, Ticks) */
 .message-content { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
-.timestamp { font-size: 0.75em; }
+.timestamp { font-size: 0.75em; text-align: end; }
 .customer-message .timestamp { color: var(--text-secondary); }
-.agent-message .timestamp { color: #f1f3f5; opacity: 0.8; }
-.status-ticks { font-size: 1.1em; color: #f1f3f5; opacity: 0.8; }
-.status-ticks[data-status="read"] { color: #a6e6ff; }
+.agent-message .timestamp { color: #5a8e87; }
+.status-ticks { font-size: 1.1em; color: #5a8e87; }
+.status-ticks[data-status="read"] { color: #34b7f1; }
 .status-ticks::after { content: '✓'; margin-left: -6px; display: none; }
 .status-ticks[data-status="delivered"]::after, .status-ticks[data-status="read"]::after { display: inline; }
 
-/* --- Reply Area --- */
+/* 3.5 Reply Area */
 .reply-area {
-    background-color: var(--header-bg);
-    flex-shrink: 0;
-    height: 130px;
+    background-color: #f0f2f5;
+    border-top: 1px solid var(--border-color);
+}
+.form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.25rem rgba(0, 122, 90, 0.25);
 }
 .btn-primary {
     background-color: var(--accent-color);
@@ -160,22 +184,13 @@ div#chat-header-content {
     transition: all 0.2s ease;
 }
 .btn-primary:hover {
-    background-color: #2980b9;
-    border-color: #2980b9;
+    background-color: #005a41;
+    border-color: #005a41;
     transform: scale(1.05);
 }
 
-/* --- Custom Scrollbar --- */
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 6px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #aaa;
-}
+/* --- 4. Custom Scrollbar --- */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #adb5bd; }

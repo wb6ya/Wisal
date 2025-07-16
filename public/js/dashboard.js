@@ -209,60 +209,26 @@ if (imageUploadInput) {
         if (!file || !activeConversationId) return;
 
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'whatsapp_files'); // تأكد من أن هذا الاسم صحيح
+        formData.append('mediaFile', file); // اسم الحقل يجب أن يطابق ما في الخادم
 
         alert('Uploading media...');
 
         try {
-            // --- الخطوة أ: الرفع إلى Cloudinary ---
-            console.log("Attempting to upload to Cloudinary...");
-            const cloudName = document.body.dataset.cloudName;
-            if (!cloudName) {
-                throw new Error("Cloudinary cloud name is not available!");
-            }
-
-            const resourceType = file.type.startsWith('image/') ? 'image' : 'raw';
-            const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-
-            const cloudinaryResponse = await fetch(cloudinaryUrl, {
+            const response = await fetch(`/api/conversations/${activeConversationId}/send-media`, {
                 method: 'POST',
-                body: formData
+                body: formData // نرسل الملف مباشرة
             });
 
-            const cloudinaryData = await cloudinaryResponse.json();
-            if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
-                // اطبع الخطأ من Cloudinary بالتفصيل
-                console.error("Cloudinary Upload Failed:", cloudinaryData);
-                throw new Error('Cloudinary upload failed.');
+            if (response.ok) {
+                const sentMessage = await response.json();
+                appendMessage(sentMessage);
+            } else {
+                const errorData = await response.json();
+                alert('Failed to send media: ' + (errorData.message || 'Unknown error'));
             }
-
-            console.log("Cloudinary Upload Successful. URL:", cloudinaryData.secure_url);
-            const mediaUrl = cloudinaryData.secure_url;
-
-            // --- الخطوة ب: إرسال الرابط إلى خادمنا ---
-            console.log("Sending media URL to our server...");
-            const endpoint = resourceType === 'image' ? `/api/conversations/${activeConversationId}/send-image` : `/api/conversations/${activeConversationId}/send-document`;
-
-            const serverResponse = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ imageUrl: mediaUrl, filename: file.name })
-            });
-
-            if (!serverResponse.ok) {
-                // اطبع الخطأ من خادمنا بالتفصيل
-                const errorData = await serverResponse.json();
-                console.error("Server responded with an error:", errorData);
-                throw new Error(errorData.message || 'Failed to send media via WhatsApp.');
-            }
-
-            const sentMessage = await serverResponse.json();
-            appendMessage(sentMessage);
-
         } catch (error) {
-            console.error('--- DETAILED ERROR ---', error);
-            alert(`An error occurred: ${error.message}`);
+            console.error('Error uploading media:', error);
+            alert('An error occurred during upload.');
         }
     });
 }
