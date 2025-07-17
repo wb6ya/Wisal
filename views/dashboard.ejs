@@ -8,45 +8,67 @@
     <link rel="stylesheet" href="/css/dashboard.css">
 </head>
 <body data-cloud-name="<%= cloudName %>">
-    <div class="main-app-container">
-        <h1 class="mb-4">لوحة تحكم واتساب - <%= company.companyName %></h1>
-        
-        <div class="row g-0 chat-container border rounded bg-white">
-            <div class="col-lg-4 col-md-5 conversations-list-container p-0">
-                <div class="conv-header p-3">
-                    <h5 class="mb-0">المحادثات</h5>
-                </div>
-                <div class="list-group list-group-flush" id="conv-list">
-                    </div>
+    <div class="app-layout">
+        <nav class="main-sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="sidebar-brand">First Dream</a>
             </div>
+            <ul class="sidebar-nav">
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-house-door-fill me-3"></i> الرئيسية</a></li>
+                <li class="nav-item"><a href="#" class="nav-link active"><i class="bi bi-chat-left-text-fill me-3"></i> الرسائل</a></li>
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-people-fill me-3"></i> العملاء</a></li>
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-bar-chart-line-fill me-3"></i> التقارير</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                 <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#settingsModal"><i class="bi bi-gear-fill me-3"></i> الإعدادات</a>
+            </div>
+        </nav>
 
-            <div class="col-lg-8 col-md-7 chat-window-container p-0">
-                <div class="chat-header p-3">
-                    <div id="chat-header-content" class="d-flex align-items-center" style="visibility: hidden;">
-                        <div id="chat-header-avatar" class="avatar"></div>
-                        <span id="chat-header-name" class="fw-bold ms-3"></span>
-                    </div>
-                </div>
-                <div class="messages-area">
-                    <div class="d-flex h-100 justify-content-center align-items-center">
-                        <h4 class="text-muted">اختر محادثة من القائمة</h4>
-                    </div>
-                </div>
-                <div class="reply-area p-3 bg-light">
-                    <form id="replyForm" class="d-none">
-                        <div class="input-group">
-                            <input type="file" id="imageUpload" accept="image/*,application/pdf,.doc,.docx" style="display: none;">
-                            <button class="btn btn-secondary" type="button" id="attachBtn"><i class="bi bi-paperclip"></i></button>
-                            <input type="text" id="replyMessage" class="form-control" placeholder="اكتب رسالة..." autocomplete="off">
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i></button>
-                        </div>
-                    </form>
+        <div class="conversations-panel">
+            <div class="panel-header">
+                <h4 class="mb-0">الرسائل</h4>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-light" title="بحث"><i class="bi bi-search"></i></button>
+                    <button class="btn btn-sm btn-primary" title="محادثة جديدة" data-bs-toggle="modal" data-bs-target="#newChatModal">+</button>
                 </div>
             </div>
+            <div class="list-group list-group-flush" id="conv-list">
+                </div>
         </div>
+
+        <main class="chat-panel">
+            <header class="chat-header">
+                <div id="chat-header-content" class="d-flex align-items-center" style="visibility: hidden;">
+                    <div id="chat-header-avatar" class="avatar"></div>
+                    <div class="ms-3">
+                        <h5 id="chat-header-name" class="mb-0 fw-bold"></h5>
+                        <small id="chat-header-status" class="text-success">Authorised Dealer</small>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <i class="bi bi-three-dots"></i>
+                </div>
+            </header>
+            <div class="messages-area">
+                <div class="placeholder">
+                    <h4>اختر محادثة لعرض الرسائل</h4>
+                </div>
+            </div>
+            <footer class="reply-area">
+                <form id="replyForm" class="d-none">
+                    <div class="input-group">
+                        <input type="file" id="mediaUpload" style="display:none;" multiple>
+                        <button class="btn btn-light" type="button" id="attachBtn"><i class="bi bi-paperclip"></i></button>
+                        <input type="text" id="replyMessage" class="form-control" placeholder="اكتب رسالتك هنا...">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i></button>
+                    </div>
+                </form>
+            </footer>
+        </main>
     </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/js/dashboard.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/dashboard.js"></script>
 </body>
 </html>

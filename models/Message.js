@@ -32,6 +32,13 @@ const messageSchema = new mongoose.Schema({
         type: String,
         enum: ['sent', 'delivered', 'read'], // القيم المسموح بها فقط
         default: 'sent' // القيمة الافتراضية عند إنشاء الرسالة
+    },
+    repliedToMessageId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Message'
+    },
+    repliedToMessageContent: {
+        type: String
     }
 },{ timestamps: true });
 

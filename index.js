@@ -1,4 +1,4 @@
-// 1. IMPORTS
+// 1. IMPORTS - استيراد المكتبات
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -11,9 +11,9 @@ const { Server } = require("socket.io");
 const axios = require('axios');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() }); // لإعداد multer
+const upload = multer({ storage: multer.memoryStorage() });
 
-// 2. CONFIGURATIONS
+// 2. CONFIGURATIONS - إعدادات
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -24,13 +24,14 @@ const Company = require('./models/Company');
 const Conversation = require('./models/Conversation');
 const Message = require('./models/Message');
 
-// 3. INITIALIZATION
+// 3. INITIALIZATION - تهيئة التطبيق
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// 4. MIDDLEWARE
+// 4. MIDDLEWARE - الأوامر الوسيطة
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -49,11 +50,10 @@ const isAuthenticated = (req, res, next) => {
     }
 };
 
-// 5. PAGE ROUTES
+// 5. PAGE ROUTES - مسارات الصفحات
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
 
 app.get('/dashboard', isAuthenticated, async (req, res) => {
     try {
@@ -62,21 +62,18 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         
         const webhookUrl = `${req.protocol}://${req.get('host')}/webhook/${company._id}`;
         
-        // --- هذا هو السطر الأهم ---
-        // نتأكد من إرسال كل المتغيرات المطلوبة إلى الواجهة
         res.render('dashboard', { 
             company, 
             webhookUrl, 
             cloudName: process.env.CLOUDINARY_CLOUD_NAME 
         });
-
     } catch (error) {
         console.error("Dashboard Error:", error);
         res.redirect('/');
     }
 });
 
-// 6. API ROUTES
+// 6. API ROUTES - مسارات الواجهة البرمجية
 app.post('/api/register', async (req, res) => {
     try {
         const { companyName, email, password } = req.body;
@@ -128,7 +125,7 @@ app.post('/api/settings', isAuthenticated, async (req, res) => {
 
 app.get('/api/conversations', isAuthenticated, async (req, res) => {
     try {
-        const conversations = await Conversation.find({ companyId: req.session.companyId }).sort({ updatedAt: -1 });
+        const conversations = await Conversation.find({ companyId: req.session.companyId }).sort({ lastMessageTimestamp: -1 });
         res.status(200).json(conversations);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching conversations' });
@@ -137,6 +134,12 @@ app.get('/api/conversations', isAuthenticated, async (req, res) => {
 
 app.get('/api/conversations/:id/messages', isAuthenticated, async (req, res) => {
     try {
+        const conversation = await Conversation.findById(req.params.id);
+        if (conversation && conversation.unreadCount > 0) {
+            conversation.unreadCount = 0;
+            await conversation.save();
+            io.emit('conversation_updated', conversation);
+        }
         const messages = await Message.find({ conversationId: req.params.id }).sort({ createdAt: 'asc' });
         res.status(200).json(messages);
     } catch (error) {
@@ -171,6 +174,11 @@ app.post('/api/conversations/:id/reply', isAuthenticated, async (req, res) => {
             wabaMessageId: metaMessageId
         });
         await sentMessage.save();
+        
+        conversation.lastMessage = sentMessage.content;
+        conversation.lastMessageTimestamp = sentMessage.createdAt;
+        await conversation.save();
+
         res.status(200).json(sentMessage);
     } catch (error) {
         console.error("Error sending reply:", error);
@@ -178,7 +186,6 @@ app.post('/api/conversations/:id/reply', isAuthenticated, async (req, res) => {
     }
 });
 
-// في index.js، قسم API ROUTES
 app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
     try {
         const company = await Company.findById(req.session.companyId);
@@ -191,11 +198,9 @@ app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('me
         const resourceType = file.mimetype.startsWith('image/') ? 'image' : 'raw';
         const originalFilename = file.originalname;
 
-        // 1. رفع الملف من ذاكرة الخادم إلى Cloudinary
         const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream({
                 resource_type: resourceType,
-                public_id: originalFilename,
                 upload_preset: 'whatsapp_files'
             }, (error, result) => {
                 if (error) reject(error); else resolve(result);
@@ -205,8 +210,6 @@ app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('me
 
         const mediaUrl = cloudinaryUploadResponse.secure_url;
 
-        // 2. إنشاء طلب API بناءً على نوع الملف
-        const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
         let apiRequestData;
         if (resourceType === 'image') {
             apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "image", image: { link: mediaUrl } };
@@ -214,12 +217,10 @@ app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('me
             apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "document", document: { link: mediaUrl, filename: originalFilename } };
         }
 
-        // 3. إرسال الطلب إلى ميتا
         const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-        const metaResponse = await axios.post(whatsappApiUrl, apiRequestData, { headers });
+        const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, apiRequestData, { headers });
         const metaMessageId = metaResponse.data.messages[0].id;
 
-        // 4. حفظ نسخة في قاعدة بياناتنا
         const sentMessage = new Message({
             conversationId: req.params.id,
             sender: 'agent',
@@ -230,13 +231,18 @@ app.post('/api/conversations/:id/send-media', isAuthenticated, upload.single('me
         });
         await sentMessage.save();
 
+        conversation.lastMessage = resourceType === 'image' ? 'Image' : originalFilename;
+        conversation.lastMessageTimestamp = sentMessage.createdAt;
+        await conversation.save();
+
         res.status(200).json(sentMessage);
     } catch (error) {
-        console.error("Error sending media:", error.response ? error.response.data : error);
+        console.error("Error sending media:", error);
         res.status(500).json({ message: 'Failed to send media' });
     }
 });
-// 7. WEBHOOK ROUTES
+
+// 7. WEBHOOK ROUTES - مسارات واتساب
 app.get('/webhook/:companyId', async (req, res) => {
     try {
         const company = await Company.findById(req.params.companyId).select('whatsapp.verifyToken');
@@ -268,7 +274,6 @@ app.post('/webhook/:companyId', async (req, res) => {
             let conversation = await Conversation.findOne({ companyId, customerPhone });
             if (!conversation) {
                 conversation = new Conversation({ companyId, customerPhone, customerName });
-                await conversation.save();
             }
 
             const company = await Company.findById(companyId);
@@ -280,23 +285,41 @@ app.post('/webhook/:companyId', async (req, res) => {
                 newMessage = new Message({ conversationId: conversation._id, sender: 'customer', messageType: 'text', content: messageData.text.body });
             } else if (messageData.type === 'image' || messageData.type === 'document') {
                 const mediaId = messageData[messageData.type].id;
-                const filename = messageData[messageData.type].filename || `${mediaId}.jpg`;
+                const originalFilename = messageData[messageData.type].filename || `${mediaId}.jpg`;
                 const mediaInfoResponse = await axios.get(`https://graph.facebook.com/v19.0/${mediaId}`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
                 const tempMediaUrl = mediaInfoResponse.data.url;
                 const buffer = (await axios.get(tempMediaUrl, { headers: { 'Authorization': `Bearer ${accessToken}` }, responseType: 'arraybuffer' })).data;
+                
                 const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
-                    cloudinary.uploader.upload_stream({ resource_type: 'auto', public_id: filename, upload_preset: 'whatsapp_files' }, (error, result) => {
+                    cloudinary.uploader.upload_stream({ 
+                        resource_type: 'auto', 
+                        upload_preset: 'whatsapp_files' 
+                    }, (error, result) => {
                         if (error) reject(error); else resolve(result);
                     }).end(buffer);
                 });
+
                 newMessage = new Message({
-                    conversationId: conversation._id, sender: 'customer', messageType: messageData.type, content: cloudinaryUploadResponse.secure_url, filename: filename
+                    conversationId: conversation._id, 
+                    sender: 'customer', 
+                    messageType: messageData.type, 
+                    content: cloudinaryUploadResponse.secure_url, 
+                    filename: originalFilename
                 });
             }
 
             if (newMessage) {
                 await newMessage.save();
+                
+                conversation.lastMessage = messageData.type === 'text' ? newMessage.content : newMessage.filename;
+                conversation.lastMessageTimestamp = newMessage.createdAt;
+                if (newMessage.sender === 'customer') {
+                    conversation.unreadCount = (conversation.unreadCount || 0) + 1;
+                }
+                await conversation.save();
+
                 io.emit('new_message', newMessage);
+                io.emit('conversation_updated', conversation);
             }
         } else if (body.object === 'whatsapp_business_account' && body.entry?.[0]?.changes?.[0]?.value?.statuses?.[0]) {
             const statusData = body.entry[0].changes[0].value.statuses[0];
@@ -314,7 +337,7 @@ app.post('/webhook/:companyId', async (req, res) => {
     }
 });
 
-// 8. SERVER START
+// 8. SERVER START - تشغيل الخادم
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('تم الاتصال بقاعدة البيانات بنجاح!');

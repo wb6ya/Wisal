@@ -1,8 +1,8 @@
 /*
  * Filename: dashboard.css
- * Description: A professional and clean "Teal & White" theme for the WhatsApp SaaS dashboard.
+ * Description: A professional "Graphite & Teal" dark theme with refined lists and components.
  * Author: Google Gemini
- * Version: 5.0 (Final)
+ * Version: 11.0 (Final)
 */
 
 /* --- 1. Design System & Global Styles --- */
@@ -10,19 +10,20 @@
 
 :root {
     --font-family-base: 'Tajawal', sans-serif;
-    --body-bg: #f7f8fa;
-    --container-bg: #ffffff;
-    --sidebar-bg: #ffffff;
-    --chat-bg-pattern: url('https://i.imgur.com/y4H2bW6.png');
-    --header-bg: #f8f9fa;
-    --text-primary: #2c3e50;
-    --text-secondary: #8492a6;
-    --accent-color: #007a5a; /* A deep, professional teal */
-    --agent-bubble-bg: #e0f2f1; /* A very light teal for sent messages */
-    --customer-bubble-bg: #f1f3f5;
-    --border-color: #e9edef;
-    --shadow-color: rgba(44, 62, 80, 0.1);
-    --hover-bg-color: #f0f5ff;
+    --body-bg: #1a202c;
+    --container-bg: #2d3748;
+    --sidebar-bg: #1a202c;
+    --chat-bg: #0d1418;
+    --header-bg: #2d3748;
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --accent-color: #00a884; /* Vibrant Teal */
+    --agent-bubble-bg: #005c4b;
+    --customer-bubble-bg: #2d3748;
+    --border-color: #4a5568;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --hover-bg-color: #3d4a5c;
+    --active-list-item-bg: #2d3748;
 }
 
 body {
@@ -33,62 +34,131 @@ body {
 }
 
 /* --- 2. Main Layout & Structure --- */
-.main-app-container {
+.app-layout {
+    display: grid;
+    grid-template-columns: 260px 380px 1fr;
     height: 100vh;
-    padding: 1.5rem;
 }
 
-.chat-container {
-    height: 100%;
-    box-shadow: 0 10px 40px var(--shadow-color);
-    border: 1px solid var(--border-color);
-    border-radius: 1rem;
+.main-sidebar, .conversations-panel, .chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--sidebar-bg);
 }
+
 
 /* --- 3. Components --- */
 
-/* 3.1 Conversation List (Left Panel) */
-.conversations-list {
-    background-color: var(--sidebar-bg);
+/* 3.1 Main Sidebar (Left) */
+.main-sidebar {
+    border-left: 1px solid var(--border-color);
+    padding: 1.5rem 1rem;
+    background-color: var(--header-bg);
+}
+.sidebar-brand {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--text-primary);
+    margin-bottom: 2.5rem;
+    display: block;
+}
+.sidebar-nav .nav-item {
+    margin-bottom: 0.5rem;
+}
+.sidebar-nav .nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+}
+.sidebar-nav .nav-link:hover {
+    background-color: var(--hover-bg-color);
+    color: var(--text-primary);
+}
+.sidebar-nav .nav-link.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+}
+
+/* 3.2 Conversations Panel (Middle) */
+.conversations-panel {
+    border-left: 1px solid var(--border-color);
+}
+.panel-header {
+    padding: 1rem 1.5rem;
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    border-top-right-radius: 1rem;
-    border-bottom-right-radius: 1rem;
-}
-
-.conv-header {
-    flex-shrink: 0;
+    justify-content: space-between;
+    align-items: center;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    background-color: var(--header-bg);
 }
-
+.panel-header i {
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+.panel-header i:hover {
+    color: var(--text-primary);
+}
 .list-group {
     overflow-y: auto;
     flex-grow: 1;
 }
-
 .list-group-item {
+    display: flex;
+    align-items: flex-start; /* Align items to the top */
+    gap: 15px;
+    padding: 1rem 1.25rem;
     border: none;
     border-bottom: 1px solid var(--border-color);
     transition: all 0.2s ease-in-out;
     cursor: pointer;
-    padding: 1rem 1.25rem;
 }
-
 .list-group-item:hover {
     background-color: var(--hover-bg-color);
 }
-
 .list-group-item.active {
-    background-color: var(--accent-color) !important;
-    color: white !important;
-    border-left: 5px solid #005a41;
+    background-color: var(--active-list-item-bg) !important;
+    border-right-color: var(--accent-color);
+    box-shadow: inset 0 1px 1px var(--shadow-color), 0 1px 2px var(--shadow-color);
 }
-
-.list-group-item.active h5, .list-group-item.active p {
-    color: white !important;
+.list-group-item .text-truncate {
+    max-width: 180px;
 }
-
+.list-group-item h6 {
+    font-weight: 700;
+}
+.list-group-item small {
+    font-size: 0.75em;
+}
+.conv-item-details {
+    display: flex;
+    flex-direction: column; /* Arrange name/number and last message vertically */
+    flex-grow: 1;
+    overflow: hidden;
+}
+.conv-item-details .customer-name {
+    font-weight: 700;
+}
+.conv-item-details .customer-phone {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+.conv-item-details .last-message {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
 .avatar {
     width: 48px;
     height: 48px;
@@ -100,97 +170,121 @@ body {
     font-weight: bold;
     font-size: 1.2rem;
     flex-shrink: 0;
-    background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Background color will be set dynamically by JavaScript */
 }
 
-/* 3.2 Chat Window (Right Panel) */
-.chat-window-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+/* 3.3 Chat Panel (Right) */
+.chat-panel {
+    background-color: var(--chat-bg);
 }
-
 .chat-header {
-    background-color: var(--container-bg);
+    background-color: var(--header-bg);
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
+    min-height: 75px;
 }
-
 .messages-area {
-    background-color: var(--chat-bg);
-    background-image: var(--chat-bg-pattern);
-    background-blend-mode: multiply;
-    opacity: 0.9;
     flex-grow: 1;
     overflow-y: auto;
+    padding: 1rem 5%;
     display: flex;
     flex-direction: column-reverse;
-    padding: 1.5rem 3rem;
+}
+.reply-area {
+    background-color: var(--header-bg);
+    border-top: 1px solid var(--border-color);
+    padding: 0.75rem 1.25rem;
+    flex-shrink: 0; /* Prevent this area from shrinking */
+}
+.reply-area .form-control {
+    background-color: var(--container-bg);
+    border-radius: 2rem; /* Fully rounded */
+    border-color: var(--container-bg);
+    color: var(--text-primary);
+    padding: 0.75rem 1.25rem;
+    transition: all 0.2s ease-in-out;
+}
+.reply-area .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: none;
+}
+.reply-area .btn {
+    border-radius: 50%; /* Make buttons circular */
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem; /* Larger icons */
+    transition: all 0.2s ease;
+    border: none;
+}
+.reply-area .btn-secondary {
+    background-color: transparent;
+    border: none;
+    color: var(--text-secondary);
+}
+.reply-area .btn-secondary:hover {
+    background-color: var(--hover-bg-color);
+    color: var(--text-primary);
+}
+.reply-area .btn-primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+.reply-area .btn-primary:hover {
+    background-color: #007d65;
+    border-color: #007d65;
+    transform: scale(1.1);
+}
+.unread-badge {
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* يمنع الشارة من التقلص */
+    animation: fadeIn 0.3s ease; /* حركة ظهور ناعمة */
 }
 
-/* 3.3 Message Bubbles & Animations */
+/* 3.4 Message Bubbles & Animations */
 @keyframes slideUpFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 .message-bubble {
-    padding: 12px 18px;
-    border-radius: 20px;
-    margin-bottom: 10px;
-    max-width: 65%;
-    line-height: 1.6;
-    word-wrap: break-word;
-    animation: slideUpFadeIn 0.3s ease-out;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    padding: 10px 15px; border-radius: 12px; margin-bottom: 12px;
+    max-width: 70%; line-height: 1.6; word-wrap: break-word;
+    animation: slideUpFadeIn 0.35s ease-out; position: relative;
 }
-
 .customer-message {
     background-color: var(--customer-bubble-bg);
-    color: var(--text-primary);
-    align-self: flex-start;
-    border-bottom-left-radius: 5px;
+    align-self: flex-start; border-bottom-left-radius: 4px;
 }
-
 .agent-message {
     background-color: var(--agent-bubble-bg);
-    color: var(--text-primary);
-    align-self: flex-end;
-    border-bottom-right-radius: 5px;
+    color: white; align-self: flex-end; border-bottom-right-radius: 4px;
 }
 
-/* 3.4 Meta Info (Timestamp, Ticks) */
+/* 3.5 Meta Info (Timestamp, Ticks, etc.) */
 .message-content { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
 .timestamp { font-size: 0.75em; text-align: end; }
 .customer-message .timestamp { color: var(--text-secondary); }
-.agent-message .timestamp { color: #5a8e87; }
-.status-ticks { font-size: 1.1em; color: #5a8e87; }
-.status-ticks[data-status="read"] { color: #34b7f1; }
-.status-ticks::after { content: '✓'; margin-left: -6px; display: none; }
+.agent-message .timestamp { color: #a7f3d0; opacity: 0.9; }
+.status-ticks { font-size: 1.1em; color: #a7f3d0; opacity: 0.9; }
+.status-ticks[data-status="read"] { color: #53bdeb; }
+.status-ticks::after { content: '✓'; margin-left: -5px; display: none; }
 .status-ticks[data-status="delivered"]::after, .status-ticks[data-status="read"]::after { display: inline; }
+.message-meta-container { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 
-/* 3.5 Reply Area */
-.reply-area {
-    background-color: #f0f2f5;
-    border-top: 1px solid var(--border-color);
-}
-.form-control:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 0.25rem rgba(0, 122, 90, 0.25);
-}
-.btn-primary {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    transition: all 0.2s ease;
-}
-.btn-primary:hover {
-    background-color: #005a41;
-    border-color: #005a41;
-    transform: scale(1.05);
-}
-
-/* --- 4. Custom Scrollbar --- */
+/* 4. Utilities & Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+::-webkit-scrollbar-track { background: var(--chat-bg); }
+::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }

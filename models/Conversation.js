@@ -12,9 +12,21 @@ const conversationSchema = new mongoose.Schema({
         required: true
     },
     customerName: {
-        type: String // We get this from the WhatsApp message
+        type: String
     },
-    // We can add status like 'open', 'closed' later
+    // --- ADD THESE NEW FIELDS ---
+    lastMessage: {
+        type: String,
+        default: ""
+    },
+    lastMessageTimestamp: {
+        type: Date,
+        default: Date.now
+    },
+    unreadCount: {
+        type: Number,
+        default: 0
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Conversation', conversationSchema);
