@@ -6,7 +6,8 @@ const conversationSchema = new mongoose.Schema({
     customerName: { type: String },
     lastMessage: { type: String, default: "" },
     lastMessageTimestamp: { type: Date, default: Date.now },
-    unreadCount: { type: Number, default: 0 }
+    unreadCount: { type: Number, default: 0 },
+    notes: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Conversation', conversationSchema);

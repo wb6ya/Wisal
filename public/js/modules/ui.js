@@ -34,10 +34,10 @@ export function appendMessage(msg, messagesArea) {
             contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 250px; border-radius: 8px;"></a>`;
             break;
         case 'video':
-            contentWrapper.innerHTML = `<video controls src="${msg.content}" style="max-width: 300px; border-radius: 8px;"></video>`;
+            contentWrapper.innerHTML = `<video controls src="/api/download/${msg._id}" style="max-width: 300px; border-radius: 8px;"></video>`;
             break;
         case 'audio':
-            contentWrapper.innerHTML = `<audio controls src="${msg.content}" style="width: 250px;"></audio>`;
+            contentWrapper.innerHTML = `<audio controls src="/api/download/${msg._id}" style="width: 250px;"></audio>`;
             break;
         case 'document':
         case 'raw':

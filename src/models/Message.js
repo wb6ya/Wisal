@@ -7,6 +7,8 @@ const messageSchema = new mongoose.Schema({
     content: { type: String, required: true },
     filename: { type: String },
     wabaMessageId: { type: String, unique: true, sparse: true },
+    cloudinaryPublicId: { type: String },
+    cloudinaryResourceType: { type: String },
     status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
     repliedToMessageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
     repliedToMessageContent: { type: String },

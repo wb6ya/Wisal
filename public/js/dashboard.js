@@ -3,7 +3,7 @@
  * Description: The complete client-side logic for the WhatsApp SaaS dashboard.
  * This file handles all UI interactions, real-time events via Socket.IO, and API calls.
  * Author: Google Gemini (Senior Software Engineer & UI/UX Designer)
- * Version: Final
+ * Version: Final & Refactored
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -27,12 +27,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const replyPreviewContainer = document.getElementById('replyPreview');
     const replyPreviewContent = document.getElementById('replyPreviewContent');
     const closeReplyPreviewBtn = document.getElementById('closeReplyPreview');
+    const chatHeaderPhone = document.getElementById('chat-header-phone');
+    const searchIcon = document.getElementById('searchIcon');
+    const messageSearchContainer = document.getElementById('messageSearchContainer');
+    const messageSearchInput = document.getElementById('messageSearchInput');
+    const closeSearchBtn = document.getElementById('closeSearchBtn');
+    const notesBtn = document.getElementById('notesBtn');
+    const customerNotesTextarea = document.getElementById('customerNotes');
+    const saveNotesBtn = document.getElementById('saveNotesBtn');
+    const notesStatus = document.getElementById('notesStatus');
 
     // --- Socket.IO & State Initialization ---
     const socket = io();
     const notificationSound = new Audio('/sounds/notification.mp3');
     let activeConversationId = null;
     let messageToReplyToId = null;
+    let searchMatches = [];
+    let currentMatchIndex = -1;
 
     // --- 2. Helper Functions ---
 
@@ -82,24 +93,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'message-content';
 
-        switch (msg.messageType) {
-            case 'image':
-                contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 250px; border-radius: 8px; cursor: pointer;"></a>`;
-                break;
-            case 'video':
-                contentWrapper.innerHTML = `<video controls src="${msg.content}" style="max-width: 300px; border-radius: 8px;"></video>`;
-                break;
-            case 'audio':
-                contentWrapper.innerHTML = `<audio controls src="${msg.content}" style="width: 250px;"></audio>`;
-                break;
-            case 'document':
-            case 'raw':
-                contentWrapper.innerHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename}</span></a>`;
-                break;
-            default:
-                contentWrapper.textContent = msg.content;
-                break;
-        }
+    switch (msg.messageType) {
+        case 'image':
+        case 'sticker': // Treat stickers as images
+            contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 250px; border-radius: 8px; cursor: pointer;"></a>`;
+            break;
+        case 'video':
+            contentWrapper.innerHTML = `<video controls src="${msg.content}" style="max-width: 300px; border-radius: 8px;"></video>`;
+            break;
+        case 'audio':
+            contentWrapper.innerHTML = `<audio controls src="${msg.content}" style="width: 250px;"></audio>`;
+            break;
+        case 'document':
+        case 'raw':
+            contentWrapper.innerHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename}</span></a>`;
+            break;
+        default: // text
+            contentWrapper.textContent = msg.content;
+            break;
+    }
         
         const timestamp = new Date(msg.createdAt);
         const formattedTime = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -127,11 +139,13 @@ document.addEventListener('DOMContentLoaded', () => {
         convElement.classList.add('active');
 
         const customerName = convElement.dataset.customerName;
+        const customerPhone = convElement.dataset.customerPhone;
         const firstLetter = customerName.charAt(0).toUpperCase();
         
         chatHeaderAvatar.textContent = firstLetter;
         chatHeaderAvatar.style.backgroundColor = generateHSLColor(customerName);
         chatHeaderName.textContent = customerName;
+        if(chatHeaderPhone) chatHeaderPhone.textContent = customerPhone;
         chatHeaderContent.style.visibility = 'visible';
 
         messagesArea.innerHTML = '<p class="text-center text-muted">Loading...</p>';
@@ -146,6 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
             replyForm.classList.remove('d-none');
         } catch (error) {
             messagesArea.innerHTML = '<div class="placeholder"><h4>Failed to load messages.</h4></div>';
+        }
+        try {
+            const notesResponse = await fetch(`/api/conversations/${conversationId}/notes`);
+            const data = await notesResponse.json();
+            customerNotesTextarea.value = data.notes || '';
+        } catch (error) {
+            console.error("Failed to load notes:", error);
         }
     }
 
@@ -163,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 convItem.dataset.id = conv._id;
                 const customerName = conv.customerName || 'Unknown';
                 convItem.dataset.customerName = customerName;
+                convItem.dataset.customerPhone = conv.customerPhone;
                 const firstLetter = customerName.charAt(0).toUpperCase();
                 const relativeTime = formatRelativeTime(conv.lastMessageTimestamp);
                 const lastMessageContent = conv.lastMessage || '...';
@@ -191,26 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 3. EVENT LISTENERS ---
-    messagesArea.addEventListener('click', (e) => {
-    // Check if the user clicked on a quoted reply box
-    const quotedBox = e.target.closest('.quoted-reply');
-    if (quotedBox) {
-        const originalMessageId = quotedBox.dataset.replyId;
-        const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
-        
-        if (originalMessageBubble) {
-            // If the original message is found, scroll to it smoothly
-            originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Add a temporary "flash" effect to highlight it
-            originalMessageBubble.classList.add('flash');
-            setTimeout(() => {
-                originalMessageBubble.classList.remove('flash');
-            }, 1200); // Remove the flash after 1.2 seconds
-        }
-    }});
-
-    
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -274,9 +276,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // The message will be appended via the 'new_message' socket event.
                     // This prevents the message from appearing twice.
                     replyMessageInput.value = '';
-                    replyPreviewContainer.classList.add('d-none');
+                    if(replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
                     messageToReplyToId = null;
                 } else {
+                    const data = await response.json();
                     alert('Failed to send reply: ' + (data.message || 'Unknown error'));
                 }
             } catch (error) {
@@ -335,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     alert('Template message sent successfully!');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
-                    modal.hide();
+                    if(modal) modal.hide();
                 } else {
                     const errorData = await response.json();
                     alert('Failed to send template: ' + errorData.message);
@@ -355,18 +358,168 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-    
-    if (searchBtn) {
+
+    if(searchBtn) {
         searchBtn.addEventListener('click', () => {
-            if (conversationSearchContainer) {
-                conversationSearchContainer.style.display = conversationSearchContainer.style.display === 'none' ? 'block' : 'none';
-                if (conversationSearchContainer.style.display === 'block') {
-                    conversationSearchInput.focus();
+            if(conversationSearchContainer) {
+                const isHidden = conversationSearchContainer.style.display === 'none';
+                conversationSearchContainer.style.display = isHidden ? 'block' : 'none';
+                if(isHidden) conversationSearchInput.focus();
+            }
+        });
+    }
+
+    if (searchIcon) {
+        searchIcon.addEventListener('click', () => {
+            if(messageSearchContainer) {
+                messageSearchContainer.classList.toggle('d-none');
+                if (!messageSearchContainer.classList.contains('d-none')) {
+                    messageSearchInput.focus();
                 }
             }
         });
     }
 
+    if (closeSearchBtn) {
+        closeSearchBtn.addEventListener('click', () => {
+            if(messageSearchContainer) {
+                messageSearchContainer.classList.add('d-none');
+                messageSearchInput.value = '';
+                document.querySelectorAll('.message-bubble.highlight').forEach(el => {
+                    el.classList.remove('highlight', 'active-match');
+                });
+                searchMatches = [];
+                currentMatchIndex = -1;
+                if(searchMatchCounter) searchMatchCounter.textContent = '';
+            }
+        });
+    }
+
+    if (messageSearchInput) {
+        messageSearchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                executeSearch();
+            }
+        });
+    }
+
+    function executeSearch() {
+        const searchTerm = messageSearchInput.value.toLowerCase();
+        searchMatches = [];
+        currentMatchIndex = -1;
+        document.querySelectorAll('.message-bubble.highlight, .message-bubble.active-match').forEach(el => el.classList.remove('highlight', 'active-match'));
+
+        if (searchTerm.length < 2) {
+            if(searchMatchCounter) searchMatchCounter.textContent = '';
+            return;
+        }
+
+        const allMessages = messagesArea.querySelectorAll('.message-bubble');
+        allMessages.forEach(bubble => {
+            const contentWrapper = bubble.querySelector('.message-content');
+            if (contentWrapper && contentWrapper.textContent.toLowerCase().includes(searchTerm)) {
+                bubble.classList.add('highlight');
+                searchMatches.push(bubble);
+            }
+        });
+
+        if (searchMatches.length > 0) {
+            currentMatchIndex = 0;
+            updateSearchUI();
+        } else {
+            if(searchMatchCounter) searchMatchCounter.textContent = '0/0';
+        }
+    }
+
+    function updateSearchUI() {
+        document.querySelectorAll('.message-bubble.active-match').forEach(el => el.classList.remove('active-match'));
+        if (currentMatchIndex !== -1) {
+            const activeMatch = searchMatches[currentMatchIndex];
+            activeMatch.classList.add('active-match');
+            activeMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if(searchMatchCounter) searchMatchCounter.textContent = `${currentMatchIndex + 1}/${searchMatches.length}`;
+        }
+    }
+
+    if(searchNextBtn) {
+        searchNextBtn.addEventListener('click', () => {
+            if(searchMatches.length === 0) return;
+            currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+            updateSearchUI();
+        });
+    }
+
+    if(searchPrevBtn) {
+        searchPrevBtn.addEventListener('click', () => {
+            if(searchMatches.length === 0) return;
+            currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+            updateSearchUI();
+        });
+    }
+
+    if (notesBtn) {
+        notesBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!activeConversationId) return alert('Please select a conversation first.');
+            
+            try {
+                const response = await fetch(`/api/conversations/${activeConversationId}/notes`);
+                const data = await response.json();
+                customerNotesTextarea.value = data.notes || '';
+                notesStatus.textContent = '';
+            } catch (error) {
+                console.error("Failed to load notes:", error);
+                notesStatus.textContent = 'Failed to load notes.';
+            }
+        });
+    }
+
+    if (saveNotesBtn) {
+        saveNotesBtn.addEventListener('click', async () => {
+            if (!activeConversationId) return;
+            const notes = customerNotesTextarea.value;
+            notesStatus.textContent = 'Saving...';
+            try {
+                const response = await fetch(`/api/conversations/${activeConversationId}/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes })
+                });
+                if (response.ok) {
+                    notesStatus.textContent = 'Notes saved successfully!';
+     
+                    setTimeout(() => { notesStatus.textContent = ''; }, 2000);
+                } else {
+                    notesStatus.textContent = 'Failed to save notes.';
+                }
+            } catch (error) {
+                notesStatus.textContent = 'Connection error.';
+            }
+        });
+    }
+
+        // A smart listener for clicks on the entire message area
+        if (messagesArea) {
+            messagesArea.addEventListener('click', (e) => {
+                // Check if the user clicked on a quoted reply box
+                const quotedBox = e.target.closest('.quoted-reply');
+                if (quotedBox) {
+                    const originalMessageId = quotedBox.dataset.replyId;
+                    const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
+                    
+                    if (originalMessageBubble) {
+                        // If the original message is found, scroll to it smoothly
+                        originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Add a temporary "flash" effect to highlight it
+                        originalMessageBubble.classList.add('flash');
+                        setTimeout(() => {
+                            originalMessageBubble.classList.remove('flash');
+                        }, 1200); // Remove the flash after 1.2 seconds
+                    }
+                }
+            });
+        }
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
         loadConversations();

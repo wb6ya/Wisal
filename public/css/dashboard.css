@@ -491,3 +491,77 @@ body {
 ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
+.chat-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Important for layout */
+}
+
+.chat-body .nav-tabs {
+    flex-shrink: 0;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-body .nav-tabs .nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.chat-body .nav-tabs .nav-link.active {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    border-bottom-color: transparent;
+}
+
+.chat-body .tab-content {
+    flex-grow: 1;
+    overflow: hidden; /* The content will handle its own scroll */
+}
+
+.chat-body .tab-pane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-area {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.notes-area textarea {
+    background-color: var(--container-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    resize: none;
+}
+
+/* --- Styles for In-Chat Search --- */
+#messageSearchContainer {
+    max-width: 250px;
+    transition: all 0.3s ease;
+}
+
+.message-bubble.highlight {
+    background-color: #553c1a !important; /* A distinct highlight color for dark mode */
+    border: 1px solid #d4a257;
+}
+
+/* --- Styles for Enhanced In-Chat Search --- */
+#messageSearchContainer {
+    max-width: 300px;
+    transition: all 0.3s ease;
+}
+.highlight {
+    background-color: rgba(255, 243, 205, 0.5) !important; /* لون تمييز أفتح */
+}
+.highlight.active-match {
+    background-color: #ffc107 !important; /* لون تمييز أقوى للنتيجة النشطة */
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
+}
+#searchMatchCounter {
+    white-space: nowrap;
+}
+

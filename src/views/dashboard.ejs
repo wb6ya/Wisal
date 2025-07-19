@@ -84,14 +84,30 @@
         Main Chat Panel
         ================================================================== -->
         <main class="chat-panel">
-            <header class="chat-header" id="chat-header-placeholder">
-                <!-- This header is a placeholder, content is dynamically set by JS -->
+            <header class="chat-header">
                 <div id="chat-header-content" class="d-flex align-items-center" style="visibility: hidden;">
                     <div id="chat-header-avatar" class="avatar"></div>
                     <div class="ms-3">
                         <h5 id="chat-header-name" class="mb-0 fw-bold"></h5>
-                    </div>
+                        <small id="chat-header-phone" class="text-muted"></small> </div>
                 </div>
+                    <div class="chat-header-actions d-flex align-items-center">
+                        <div id="messageSearchContainer" class="input-group d-none me-2 align-items-center">
+                            <input type="text" id="messageSearchInput" class="form-control form-control-sm" placeholder="ابحث في الرسائل...">
+                            <span id="searchMatchCounter" class="text-muted small ms-2"></span>
+                            <button id="searchPrevBtn" class="btn btn-sm btn-icon" type="button" title="السابق"><i class="bi bi-chevron-up"></i></button>
+                            <button id="searchNextBtn" class="btn btn-sm btn-icon" type="button" title="التالي"><i class="bi bi-chevron-down"></i></button>
+                            <button id="closeSearchBtn" class="btn btn-sm btn-icon" type="button" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <i id="searchIcon" class="bi bi-search btn-icon" title="بحث في المحادثة"></i>
+                        <div class="chat-header-actions dropdown">
+                            <i class="bi bi-three-dots-vertical btn-icon" data-bs-toggle="dropdown" aria-expanded="false"></i>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" id="notesBtn" data-bs-toggle="modal" data-bs-target="#notesModal">الملاحظات</a></li>
+                                <li><a class="dropdown-item" href="#">خيار آخر</a></li>
+                            </ul>
+                        </div>
+                    </div>
             </header>
             <div class="messages-area">
                 <div class="placeholder">
@@ -116,6 +132,7 @@
                     </div>
                 </form>
             </footer>
+            
         </main>
     </div>
 
@@ -265,6 +282,29 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Notes Modal -->
+    <div class="modal fade" id="notesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">ملاحظات العميل</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <textarea id="customerNotes" class="form-control" rows="10" placeholder="اكتب ملاحظاتك الخاصة عن هذا العميل هنا..."></textarea>
+                            <div id="notesStatus" class="form-text mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" id="saveNotesBtn" class="btn btn-primary">حفظ الملاحظات</button>
                 </div>
             </div>
         </div>

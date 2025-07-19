@@ -9,7 +9,7 @@ const Message = require('../models/Message');
 module.exports = function(io) {
     const router = express.Router();
 
-    // Webhook Verification
+    // Webhook Verification Route
     router.get('/:companyId', async (req, res) => {
         try {
             const company = await Company.findById(req.params.companyId).select('whatsapp.verifyToken');
@@ -31,7 +31,7 @@ module.exports = function(io) {
         }
     });
 
-    // Webhook Event Handling
+    // Webhook Event Handling Route
     router.post('/:companyId', async (req, res) => {
         const body = req.body;
         try {
@@ -72,25 +72,35 @@ module.exports = function(io) {
                     newMessage = new Message({ conversationId: conversation._id, sender: 'customer', messageType: 'text', content: messageData.text.body, ...replyContext });
                 } else if (mediaTypes.includes(messageType)) {
                     const mediaId = messageData[messageType].id;
-                    const originalFilename = messageData[messageType].filename || `${mediaId}.${messageData[messageType].mime_type.split('/')[1] || 'tmp'}`;
-                    const mediaInfoResponse = await axios.get(`https://graph.facebook.com/v19.0/${mediaId}`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                    const originalFilename = messageData[messageType].filename || `${mediaId}.webp`; // Stickers are usually .webp
+                    
+                    const mediaInfoResponse = await axios.get(`https://graph.facebook.com/v19.0/${mediaId}`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
                     const tempMediaUrl = mediaInfoResponse.data.url;
                     const buffer = (await axios.get(tempMediaUrl, { headers: { 'Authorization': `Bearer ${accessToken}` }, responseType: 'arraybuffer' })).data;
                     
-                    const resourceTypeForUpload = ['image', 'video'].includes(messageType) ? messageType : 'raw';
+                    let resourceTypeForUpload = 'raw';
+                    if (['image', 'sticker'].includes(messageType)) {
+                        resourceTypeForUpload = 'image';
+                    } else if (['video', 'audio'].includes(messageType)) {
+                        resourceTypeForUpload = 'video';
+                    }
                     
-                     const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
-                        const uploadStream = cloudinary.uploader.upload_stream({
-                            resource_type: 'auto', // Cloudinary will auto-detect
+                    const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
+                        cloudinary.uploader.upload_stream({
+                            resource_type: resourceTypeForUpload,
                             upload_preset: 'whatsapp_files'
                         }, (error, result) => {
-                            if (error) reject(error);
-                            else resolve(result);
-                        });
-                        uploadStream.end(buffer);
+                            if (error) reject(error); else resolve(result);
+                        }).end(buffer);
                     });
+
                     newMessage = new Message({
-                        conversationId: conversation._id, sender: 'customer', messageType: messageType, content: cloudinaryUploadResponse.public_id, filename: originalFilename, ...replyContext
+                        conversationId: conversation._id,
+                        sender: 'customer',
+                        messageType: messageType, // Save the original type (e.g., 'sticker', 'audio')
+                        content: cloudinaryUploadResponse.secure_url,
+                        filename: originalFilename,
+                        ...replyContext
                     });
                 }
 
@@ -101,7 +111,6 @@ module.exports = function(io) {
                     conversation.unreadCount = (conversation.unreadCount || 0) + 1;
                     await conversation.save();
                     
-                    // Emit to the specific company's room
                     io.to(companyId.toString()).emit('new_message', newMessage);
                     io.to(companyId.toString()).emit('conversation_updated', conversation);
                 }
@@ -115,7 +124,6 @@ module.exports = function(io) {
                 if (updatedMessage) {
                     const conversation = await Conversation.findById(updatedMessage.conversationId);
                     if (conversation) {
-                        // Emit to the specific company's room
                         io.to(conversation.companyId.toString()).emit('message_status_update', { messageId: updatedMessage._id.toString(), status: newStatus });
                     }
                 }
@@ -123,7 +131,7 @@ module.exports = function(io) {
             res.sendStatus(200);
         } catch (error) {
             console.error("Error processing webhook:", error.response ? error.response.data : error);
-            res.sendStatus(200); // Always send 200 to Meta to prevent webhook disabling
+            res.sendStatus(200);
         }
     });
 

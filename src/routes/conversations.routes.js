@@ -2,9 +2,7 @@
 const express = require('express');
 const axios = require('axios');
 const multer = require('multer');
-const FormData = require('form-data');
 const { isAuthenticated } = require('../middleware/auth');
-const cloudinary = require('cloudinary').v2;
 const Company = require('../models/Company');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
@@ -62,10 +60,9 @@ module.exports = function(io) {
                 to: conversation.customerPhone,
                 text: { body: message }
             };
-            let originalMessage = null;
             // Add context if it's a reply
             if (contextMessageId) {
-                originalMessage = await Message.findById(contextMessageId);
+                const originalMessage = await Message.findById(contextMessageId);
                 if (originalMessage) {
                     apiRequestData.context = { message_id: originalMessage.wabaMessageId };
                 }
@@ -75,23 +72,13 @@ module.exports = function(io) {
             const metaResponse = await axios.post(whatsappApiUrl, apiRequestData, { headers });
             const metaMessageId = metaResponse.data.messages[0].id;
 
-            const sentMessageData = {
+            const sentMessage = new Message({
                 conversationId: req.params.id,
                 sender: 'agent',
                 messageType: 'text',
                 content: message,
                 wabaMessageId: metaMessageId
-            };
-
-            if (originalMessage) {
-                const originalSenderName = originalMessage.sender === 'agent' ? company.companyName : conversation.customerName;
-                const originalContent = originalMessage.messageType === 'text' ? originalMessage.content : (originalMessage.filename || `a ${originalMessage.messageType}`);
-                sentMessageData.repliedToMessageId = originalMessage._id;
-                sentMessageData.repliedToMessageContent = originalContent.substring(0, 70) + (originalContent.length > 70 ? '...' : '');
-                sentMessageData.repliedToMessageSender = originalSenderName;
-            }
-
-            const sentMessage = new Message(sentMessageData);
+            });
             await sentMessage.save();
             
             conversation.lastMessage = sentMessage.content;
@@ -114,63 +101,17 @@ module.exports = function(io) {
             const companyId = req.session.companyId;
             const company = await Company.findById(companyId);
             const conversation = await Conversation.findById(req.params.id);
-            if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
-                return res.status(400).json({ message: "Missing file, company data, or access token." });
+            if (!req.file || !company || !conversation) {
+                return res.status(400).json({ message: "Missing file or required data" });
             }
 
             const file = req.file;
+            const resourceType = file.mimetype.startsWith('image/') ? 'image' : (file.mimetype.startsWith('video/') ? 'video' : 'raw');
             const originalFilename = file.originalname;
 
-            // Step 1: Upload media to WhatsApp to get a media ID
-            const form = new FormData();
-            form.append('messaging_product', 'whatsapp');
-            form.append('file', file.buffer, {
-                filename: originalFilename,
-                contentType: file.mimetype,
-            });
-
-            const uploadHeaders = {
-                ...form.getHeaders(),
-                'Authorization': `Bearer ${company.whatsapp.accessToken}`,
-            };
-
-            const uploadResponse = await axios.post(
-                `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/media`,
-                form,
-                { headers: uploadHeaders }
-            );
-            const mediaId = uploadResponse.data.id;
-
-            // Step 2: Send the message using the media ID
-            const messageType = file.mimetype.split('/')[0]; // 'image', 'video', 'audio'
-            let apiRequestData;
-
-            if (messageType === 'image') {
-                apiRequestData = { type: "image", image: { id: mediaId } };
-            } else if (messageType === 'video') {
-                apiRequestData = { type: "video", video: { id: mediaId } };
-            } else if (messageType === 'audio') {
-                apiRequestData = { type: "audio", audio: { id: mediaId } };
-            } else { // Treat as document
-                apiRequestData = { type: "document", document: { id: mediaId, filename: originalFilename } };
-            }
-            
-            const finalApiRequestData = {
-                messaging_product: "whatsapp",
-                to: conversation.customerPhone,
-                ...apiRequestData
-            };
-
-            const sendHeaders = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
-            const metaMessageId = metaResponse.data.messages[0].id;
-
-            // Step 3 (Optional but recommended): Upload to Cloudinary for persistent storage
             const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
-                const resourceTypeForUpload = ['image', 'video'].includes(messageType) ? messageType : 'raw';
                 const uploadStream = cloudinary.uploader.upload_stream({
-                    resource_type: resourceTypeForUpload,
-                    public_id: originalFilename,
+                    resource_type: resourceType,
                     upload_preset: 'whatsapp_files'
                 }, (error, result) => {
                     if (error) return reject(error);
@@ -178,20 +119,37 @@ module.exports = function(io) {
                 });
                 uploadStream.end(file.buffer);
             });
-            const mediaUrl = cloudinaryUploadResponse.secure_url;
 
-            // Step 4: Save the message to our database
+            const mediaUrl = cloudinaryUploadResponse.secure_url;
+            let apiRequestData;
+            let messageTypeForDB;
+
+            if (resourceType === 'image') {
+                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "image", image: { link: mediaUrl } };
+                messageTypeForDB = 'image';
+            } else if (resourceType === 'video') {
+                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "video", video: { link: mediaUrl } };
+                messageTypeForDB = 'video';
+            } else {
+                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "document", document: { link: mediaUrl, filename: originalFilename } };
+                messageTypeForDB = 'document';
+            }
+
+            const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+            const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, apiRequestData, { headers });
+            const metaMessageId = metaResponse.data.messages[0].id;
+
             const sentMessage = new Message({
                 conversationId: req.params.id,
                 sender: 'agent',
-                messageType: messageType, // 'image', 'video', 'audio', or 'document'
-                content: mediaUrl, // Store the persistent Cloudinary URL
+                messageType: messageTypeForDB,
+                content: mediaUrl,
                 filename: originalFilename,
                 wabaMessageId: metaMessageId
             });
             await sentMessage.save();
 
-            conversation.lastMessage = messageType === 'image' ? 'Image' : (messageType === 'video' ? 'Video' : originalFilename);
+            conversation.lastMessage = messageTypeForDB === 'image' ? 'Image' : originalFilename;
             conversation.lastMessageTimestamp = sentMessage.createdAt;
             await conversation.save();
 
