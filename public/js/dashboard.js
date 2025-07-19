@@ -190,8 +190,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lastMessageContent = conv.lastMessage || '...';
                 const unreadBadge = conv.unreadCount > 0 ? `<span class="unread-badge ms-auto">${conv.unreadCount}</span>` : '';
                 const avatarColor = generateHSLColor(customerName);
+                const statusIndicator = `<div class="status-indicator status-${conv.status}" title="الحالة: ${conv.status}"></div>`;
 
-                convItem.innerHTML = `<div class="avatar me-3" style="background-color: ${avatarColor};"><span>${firstLetter}</span></div><div class="conv-item-details"><div class="d-flex w-100 justify-content-between"><span class="customer-name text-truncate">${customerName}</span><small class="text-nowrap text-muted">${relativeTime}</small></div><div class="d-flex align-items-center"><p class="last-message text-muted text-truncate mb-0 flex-grow-1">${lastMessageContent}</p>${unreadBadge}</div></div>`;
+                convItem.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        ${statusIndicator}
+                        <div class="avatar me-3" style="background-color: ${avatarColor};">
+                            <span>${firstLetter}</span>
+                        </div>
+                        <div class="conv-item-details">
+                            <div class="d-flex w-100 justify-content-between">
+                                <span class="customer-name text-truncate">${customerName}</span>
+                                <small class="text-nowrap text-muted">${relativeTime}</small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <p class="last-message text-muted text-truncate mb-0 flex-grow-1">${lastMessageContent}</p>
+                                ${unreadBadge}
+                            </div>
+                        </div>
+                    </div>
+                `;
                 if (conv._id === activeConvId) {
                     convItem.classList.add('active');
                 }
@@ -520,6 +538,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        document.body.addEventListener('click', async (e) => {
+            if (e.target.matches('.status-change-item')) {
+                e.preventDefault();
+                if (!activeConversationId) return;
+
+                const newStatus = e.target.dataset.status;
+                
+                try {
+                    await fetch(`/api/conversations/${activeConversationId}/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    // الواجهة ستتحدث تلقائيًا بفضل Socket.IO
+                } catch (error) {
+                    alert('Failed to update status.');
+                }
+            }
+        });
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
         loadConversations();

@@ -378,5 +378,71 @@ module.exports = function(io) {
         }
     });
 
+// في ملف src/routes/api.js
+
+    router.post('/conversations/:id/status', isAuthenticated, async (req, res) => {
+        try {
+            const { status } = req.body;
+            const validStatuses = {
+                'new': 'جديدة',
+                'in_progress': 'قيد التنفيذ',
+                'resolved': 'تم حلها'
+            };
+
+            if (!validStatuses[status]) {
+                return res.status(400).json({ message: 'Invalid status value.' });
+            }
+
+            const conversation = await Conversation.findOneAndUpdate(
+                { _id: req.params.id, companyId: req.session.companyId },
+                { status: status },
+                { new: true }
+            );
+
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found' });
+            }
+            
+            // --- هذا هو الجزء الجديد: إرسال رسالة القالب ---
+            const company = await Company.findById(req.session.companyId);
+            if (company && company.whatsapp.accessToken) {
+                const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
+                
+                const apiRequestData = {
+                    messaging_product: "whatsapp",
+                    to: conversation.customerPhone,
+                    type: "template",
+                    template: {
+                        name: "status_update", // اسم القالب الذي أنشأته
+                        language: {
+                            code: "ar"
+                        },
+                        components: [{
+                            type: "body",
+                            parameters: [{
+                                type: "text",
+                                text: validStatuses[status] // القيمة التي ستوضع مكان المتغير {{1}}
+                            }]
+                        }]
+                    }
+                };
+
+                const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+                // إرسال الطلب بدون انتظار الرد لمنع تعطيل الواجهة
+                axios.post(whatsappApiUrl, apiRequestData, { headers }).catch(err => {
+                    console.error("Failed to send status update template:", err.response ? err.response.data : err.message);
+                });
+            }
+            // --- نهاية الجزء الجديد ---
+            
+            io.to(req.session.companyId.toString()).emit('conversation_updated', conversation);
+            
+            res.status(200).json(conversation);
+        } catch (error) {
+            console.error("Error updating status:", error);
+            res.status(500).json({ message: 'Failed to update status' });
+        }
+    });
+
     return router;
 };

@@ -565,3 +565,18 @@ body {
     white-space: nowrap;
 }
 
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 8px; /* For RTL */
+    flex-shrink: 0;
+}
+
+.status-new { background-color: #0d6efd; } /* Blue for New */
+.status-in_progress { background-color: #ffc107; } /* Yellow for In Progress */
+.status-resolved { background-color: #198754; } /* Green for Resolved */
+
+.chat-header .dropdown-menu {
+    min-width: 10rem;
+}

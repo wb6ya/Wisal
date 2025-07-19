@@ -101,10 +101,13 @@
                         </div>
                         <i id="searchIcon" class="bi bi-search btn-icon" title="بحث في المحادثة"></i>
                         <div class="chat-header-actions dropdown">
-                            <i class="bi bi-three-dots-vertical btn-icon" data-bs-toggle="dropdown" aria-expanded="false"></i>
+                            <i class="bi bi-three-dots btn-icon" data-bs-toggle="dropdown" aria-expanded="false" title="خيارات"></i>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item status-change-item" href="#" data-status="new">جديدة</a></li>
+                                <li><a class="dropdown-item status-change-item" href="#" data-status="in_progress">قيد التنفيذ</a></li>
+                                <li><a class="dropdown-item status-change-item" href="#" data-status="resolved">تم حلها</a></li>
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="#" id="notesBtn" data-bs-toggle="modal" data-bs-target="#notesModal">الملاحظات</a></li>
-                                <li><a class="dropdown-item" href="#">خيار آخر</a></li>
                             </ul>
                         </div>
                     </div>
