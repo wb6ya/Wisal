@@ -116,7 +116,7 @@ body {
 }
 .list-group-item {
     display: flex;
-    align-items: flex-start; /* Align items to the top */
+    align-items: flex-start;
     gap: 15px;
     padding: 1rem 1.25rem;
     border: none;
@@ -272,6 +272,48 @@ body {
     color: white; align-self: flex-end; border-bottom-right-radius: 4px;
 }
 
+.quoted-reply {
+    background-color: rgba(0, 0, 0, 0.08);
+    border-right: 3px solid var(--accent-color);
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+.quoted-reply strong {
+    color: var(--accent-color);
+    display: block;
+    font-style: normal;
+}
+@keyframes highlight-flash {
+    0% { background-color: rgba(52, 152, 219, 0.3); }
+    100% { background-color: transparent; }
+}
+
+.message-bubble.flash {
+    animation: highlight-flash 1s ease-out;
+}
+
+.quoted-reply {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.quoted-reply:hover {
+    background-color: rgba(0, 0, 0, 0.1); /* A subtle hover effect */
+}
+
+/* Animation for the original message when scrolled to */
+@keyframes highlight-flash {
+    0% { background-color: rgba(52, 152, 219, 0.3); }
+    100% { background-color: transparent; }
+}
+
+.message-bubble.flash {
+    animation: highlight-flash 1.2s ease-out;
+}
 /* 3.5 Meta Info (Timestamp, Ticks, etc.) */
 .message-content { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
 .timestamp { font-size: 0.75em; text-align: end; }

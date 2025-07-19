@@ -28,8 +28,13 @@
             <div class="panel-header">
                 <h4 class="mb-0">الرسائل</h4>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-light" title="بحث"><i class="bi bi-search"></i></button>
+                    <button class="btn btn-sm btn-light" id="searchBtn" title="بحث"><i class="bi bi-search"></i></button>
                     <button class="btn btn-sm btn-primary" title="محادثة جديدة" data-bs-toggle="modal" data-bs-target="#newChatModal">+</button>
+                </div>
+            </div>
+             <div class="p-3 border-bottom border-secondary" id="conversationSearchContainer" style="display: none;">
+                <div class="input-group">
+                    <input type="text" id="conversationSearch" class="form-control" placeholder="ابحث عن محادثة...">
                 </div>
             </div>
             <div class="list-group list-group-flush" id="conv-list">
@@ -65,6 +70,62 @@
                 </form>
             </footer>
         </main>
+    </div>
+
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">الإعدادات</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <div class="mb-3">
+                            <label for="accessToken" class="form-label">Access Token:</label>
+                            <input type="text" class="form-control" id="accessToken" value="<%= company.whatsapp && company.whatsapp.accessToken ? company.whatsapp.accessToken : '' %>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phoneNumberId" class="form-label">Phone Number ID:</label>
+                            <input type="text" class="form-control" id="phoneNumberId" value="<%= company.whatsapp && company.whatsapp.phoneNumberId ? company.whatsapp.phoneNumberId : '' %>" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="verifyToken" class="form-label">Verify Token:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="verifyToken" value="<%= company.whatsapp && company.whatsapp.verifyToken ? company.whatsapp.verifyToken : '' %>" required>
+                                <button class="btn btn-outline-secondary" type="button" id="generateTokenBtn">إنشاء</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">حفظ الإعدادات</button>
+                        <p class="mt-3" id="formMessage"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newChatModal" tabindex="-1">
+         <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">بدء محادثة جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newChatForm">
+                        <div class="mb-3">
+                            <label for="customerPhoneInput" class="form-label">رقم هاتف العميل (مع رمز الدولة)</label>
+                            <input type="text" class="form-control" id="customerPhoneInput" placeholder="e.g., 9665xxxxxxxx" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateNameInput" class="form-label">اسم قالب الرسالة</label>
+                            <input type="text" class="form-control" id="templateNameInput" value="welcome_offer" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">إرسال القالب</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
