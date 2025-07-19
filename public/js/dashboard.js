@@ -1,9 +1,13 @@
-// This event listener ensures that the entire script runs only after the
-// HTML document is fully loaded, preventing "element not found" errors.
+/**
+ * Filename: dashboard.js
+ * Description: The complete client-side logic for the WhatsApp SaaS dashboard.
+ * This file handles all UI interactions, real-time events via Socket.IO, and API calls.
+ * Author: Google Gemini (Senior Software Engineer & UI/UX Designer)
+ * Version: Final
+ */
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Element Selectors & Initial State ---
-    // We select all the interactive elements from the page once and store them in constants.
     const convListDiv = document.getElementById('conv-list');
     const messagesArea = document.querySelector('.messages-area');
     const replyForm = document.getElementById('replyForm');
@@ -18,19 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const newChatForm = document.getElementById('newChatForm');
     const conversationSearchInput = document.getElementById('conversationSearch');
-    const messageSearchInput = document.getElementById('messageSearchInput');
-    const searchIcon = document.getElementById('searchIcon');
-    const closeSearchBtn = document.getElementById('closeSearchBtn');
-    const messageSearchContainer = document.getElementById('messageSearchContainer');
+    const searchBtn = document.getElementById('searchBtn');
+    const conversationSearchContainer = document.getElementById('conversationSearchContainer');
+    const replyPreviewContainer = document.getElementById('replyPreview');
+    const replyPreviewContent = document.getElementById('replyPreviewContent');
+    const closeReplyPreviewBtn = document.getElementById('closeReplyPreview');
 
-    // --- Socket.IO & Sound Initialization ---
+    // --- Socket.IO & State Initialization ---
     const socket = io();
     const notificationSound = new Audio('/sounds/notification.mp3');
     let activeConversationId = null;
+    let messageToReplyToId = null;
 
     // --- 2. Helper Functions ---
 
-    // Formats a date into a relative time string (e.g., "5 minutes ago")
     function formatRelativeTime(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -43,20 +48,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (seconds < 60) return `الآن`;
         if (minutes < 60) return `منذ ${minutes} دقيقة`;
         if (hours < 24) return `منذ ${hours} ساعة`;
-        return new Date(dateString).toLocaleDateString();
+        return new Date(dateString).toLocaleDateString('ar-EG');
     }
     
-    // Generates a unique, pleasant color based on a string (like a name)
     function generateHSLColor(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             hash = str.charCodeAt(i) + ((hash << 5) - hash);
         }
         const h = hash % 360;
-        return `hsl(${h}, 50%, 60%)`; // Hue, Saturation, Lightness
+        return `hsl(${h}, 50%, 60%)`;
     }
 
-    // Creates and displays a new message bubble in the chat window
     function appendMessage(msg) {
         const placeholder = messagesArea.querySelector('.placeholder');
         if (placeholder) placeholder.remove();
@@ -65,29 +68,37 @@ document.addEventListener('DOMContentLoaded', () => {
         msgBubble.className = 'message-bubble';
         msgBubble.dataset.messageId = msg._id;
         
-        if (msg.repliedToMessageContent && msg.repliedToMessageId) {
-        const quotedReply = document.createElement('div');
-        quotedReply.className = 'quoted-reply';
-        // --- هذا هو التعديل الأهم: إضافة data-reply-id ---
-        quotedReply.dataset.replyId = msg.repliedToMessageId; 
-        quotedReply.innerHTML = `
-            <strong>${msg.repliedToMessageSender}</strong>
-            <p class="mb-0 text-truncate">${msg.repliedToMessageContent}</p>
-        `;
-        msgBubble.appendChild(quotedReply);
+        if (msg.repliedToMessageContent) {
+            const quotedReply = document.createElement('div');
+            quotedReply.className = 'quoted-reply';
+            quotedReply.dataset.replyId = msg.repliedToMessageId;
+            quotedReply.innerHTML = `
+                <strong>${msg.repliedToMessageSender}</strong>
+                <p class="mb-0 text-truncate">${msg.repliedToMessageContent}</p>
+            `;
+            msgBubble.appendChild(quotedReply);
         }
 
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'message-content';
 
-        if (msg.messageType === 'image') {
-            contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 200px; border-radius: 8px; cursor: pointer;"></a>`;
-        } else if (msg.messageType === 'document' || msg.messageType === 'raw') {
-            // نستخدم المسار الجديد الخاص بنا للتحميل
-            const downloadUrl = `/api/download/${msg._id}`;
-            contentWrapper.innerHTML = `<a href="${downloadUrl}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename || 'Download Document'}</span></a>`;
-        } else {
-            contentWrapper.textContent = msg.content;
+        switch (msg.messageType) {
+            case 'image':
+                contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 250px; border-radius: 8px; cursor: pointer;"></a>`;
+                break;
+            case 'video':
+                contentWrapper.innerHTML = `<video controls src="${msg.content}" style="max-width: 300px; border-radius: 8px;"></video>`;
+                break;
+            case 'audio':
+                contentWrapper.innerHTML = `<audio controls src="${msg.content}" style="width: 250px;"></audio>`;
+                break;
+            case 'document':
+            case 'raw':
+                contentWrapper.innerHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename}</span></a>`;
+                break;
+            default:
+                contentWrapper.textContent = msg.content;
+                break;
         }
         
         const timestamp = new Date(msg.createdAt);
@@ -109,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesArea.prepend(msgBubble);
     }
 
-    // Fetches and displays all messages for a selected conversation
     async function loadMessages(conversationId, convElement) {
         if (activeConversationId === conversationId) return;
         activeConversationId = conversationId;
@@ -125,24 +135,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHeaderContent.style.visibility = 'visible';
 
         messagesArea.innerHTML = '<p class="text-center text-muted">Loading...</p>';
-        const response = await fetch(`/api/conversations/${conversationId}/messages`);
-        const messages = await response.json();
-        messagesArea.innerHTML = '';
-        if (messages.length === 0) {
-            messagesArea.innerHTML = '<div class="placeholder"><h4>No messages in this conversation.</h4></div>';
-        } else {
-            messages.forEach(msg => appendMessage(msg));
+        try {
+            const messages = await fetch(`/api/conversations/${conversationId}/messages`).then(res => res.json());
+            messagesArea.innerHTML = '';
+            if (messages.length === 0) {
+                messagesArea.innerHTML = '<div class="placeholder"><h4>No messages in this conversation.</h4></div>';
+            } else {
+                messages.forEach(msg => appendMessage(msg));
+            }
+            replyForm.classList.remove('d-none');
+        } catch (error) {
+            messagesArea.innerHTML = '<div class="placeholder"><h4>Failed to load messages.</h4></div>';
         }
-        replyForm.classList.remove('d-none');
     }
 
-    // Fetches and displays the list of conversations
     async function loadConversations() {
         if (!convListDiv) return; 
         try {
-            const response = await fetch('/api/conversations');
-            if (!response.ok) return;
-            const conversations = await response.json();
+            const conversations = await fetch('/api/conversations').then(res => res.json());
             const activeConvId = document.querySelector('.list-group-item.active')?.dataset.id;
             convListDiv.innerHTML = '';
 
@@ -174,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Requests permission to show desktop notifications
     function requestNotificationPermission() {
         if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
             Notification.requestPermission();
@@ -182,6 +191,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 3. EVENT LISTENERS ---
+    messagesArea.addEventListener('click', (e) => {
+    // Check if the user clicked on a quoted reply box
+    const quotedBox = e.target.closest('.quoted-reply');
+    if (quotedBox) {
+        const originalMessageId = quotedBox.dataset.replyId;
+        const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
+        
+        if (originalMessageBubble) {
+            // If the original message is found, scroll to it smoothly
+            originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Add a temporary "flash" effect to highlight it
+            originalMessageBubble.classList.add('flash');
+            setTimeout(() => {
+                originalMessageBubble.classList.remove('flash');
+            }, 1200); // Remove the flash after 1.2 seconds
+        }
+    }});
+
+    
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -239,17 +268,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`/api/conversations/${activeConversationId}/reply`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: messageText })
+                    body: JSON.stringify({ message: messageText, contextMessageId: messageToReplyToId })
                 });
-                const data = await response.json();
                 if (response.ok) {
-                    appendMessage(data);
+                    // The message will be appended via the 'new_message' socket event.
+                    // This prevents the message from appearing twice.
                     replyMessageInput.value = '';
-                    replyMessageInput.focus();
+                    replyPreviewContainer.classList.add('d-none');
+                    messageToReplyToId = null;
                 } else {
                     alert('Failed to send reply: ' + (data.message || 'Unknown error'));
                 }
             } catch (error) {
+                console.error("Error sending reply:", error);
                 alert('An unexpected error occurred.');
             }
         });
@@ -271,8 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formData
                 });
                 if (response.ok) {
-                    const sentMessage = await response.json();
-                    appendMessage(sentMessage);
+                    // The message will be appended via the 'new_message' socket event.
+                    // This prevents the media message from appearing twice.
                 } else {
                     const errorData = await response.json();
                     alert('Failed to send media: ' + (errorData.message || 'Unknown error'));
@@ -290,6 +321,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (newChatForm) {
+        newChatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const customerPhone = document.getElementById('customerPhoneInput').value;
+            const templateName = document.getElementById('templateNameInput').value;
+            try {
+                const response = await fetch('/api/conversations/initiate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerPhone, templateName })
+                });
+                if (response.ok) {
+                    alert('Template message sent successfully!');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
+                    modal.hide();
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to send template: ' + errorData.message);
+                }
+            } catch (error) {
+                alert('An error occurred.');
+            }
+        });
+    }
+
     if (conversationSearchInput) {
         conversationSearchInput.addEventListener('keyup', () => {
             const searchTerm = conversationSearchInput.value.toLowerCase();
@@ -299,26 +355,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-
-    messagesArea.addEventListener('click', (e) => {
-    const quotedBox = e.target.closest('.quoted-reply');
-    if (quotedBox) {
-        const originalMessageId = quotedBox.dataset.replyId;
-        const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
-
-        if (originalMessageBubble) {
-            // Scroll to the original message
-            originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            // Add a temporary flash effect to highlight it
-            originalMessageBubble.classList.add('flash');
-            setTimeout(() => {
-                originalMessageBubble.classList.remove('flash');
-            }, 1200); // Remove the flash after 1.2 seconds
-        }
+    
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            if (conversationSearchContainer) {
+                conversationSearchContainer.style.display = conversationSearchContainer.style.display === 'none' ? 'block' : 'none';
+                if (conversationSearchContainer.style.display === 'block') {
+                    conversationSearchInput.focus();
+                }
+            }
+        });
     }
-});
-
 
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
