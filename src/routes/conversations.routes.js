@@ -2,6 +2,8 @@
 const express = require('express');
 const axios = require('axios');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const FormData = require('form-data');
 const { isAuthenticated } = require('../middleware/auth');
 const Company = require('../models/Company');
 const Conversation = require('../models/Conversation');
@@ -60,9 +62,10 @@ module.exports = function(io) {
                 to: conversation.customerPhone,
                 text: { body: message }
             };
+            let originalMessage = null;
             // Add context if it's a reply
             if (contextMessageId) {
-                const originalMessage = await Message.findById(contextMessageId);
+                originalMessage = await Message.findById(contextMessageId);
                 if (originalMessage) {
                     apiRequestData.context = { message_id: originalMessage.wabaMessageId };
                 }
@@ -72,13 +75,23 @@ module.exports = function(io) {
             const metaResponse = await axios.post(whatsappApiUrl, apiRequestData, { headers });
             const metaMessageId = metaResponse.data.messages[0].id;
 
-            const sentMessage = new Message({
+            const sentMessageData = {
                 conversationId: req.params.id,
                 sender: 'agent',
                 messageType: 'text',
                 content: message,
                 wabaMessageId: metaMessageId
-            });
+            };
+
+            if (originalMessage) {
+                const originalSenderName = originalMessage.sender === 'agent' ? company.companyName : conversation.customerName;
+                const originalContent = originalMessage.messageType === 'text' ? originalMessage.content : (originalMessage.filename || `a ${originalMessage.messageType}`);
+                sentMessageData.repliedToMessageId = originalMessage._id;
+                sentMessageData.repliedToMessageContent = originalContent.substring(0, 70) + (originalContent.length > 70 ? '...' : '');
+                sentMessageData.repliedToMessageSender = originalSenderName;
+            }
+
+            const sentMessage = new Message(sentMessageData);
             await sentMessage.save();
             
             conversation.lastMessage = sentMessage.content;
@@ -101,43 +114,79 @@ module.exports = function(io) {
             const companyId = req.session.companyId;
             const company = await Company.findById(companyId);
             const conversation = await Conversation.findById(req.params.id);
-            if (!req.file || !company || !conversation) {
-                return res.status(400).json({ message: "Missing file or required data" });
+            if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
+                return res.status(400).json({ message: "Missing file, company data, or access token." });
             }
 
             const file = req.file;
-            const resourceType = file.mimetype.startsWith('image/') ? 'image' : (file.mimetype.startsWith('video/') ? 'video' : 'raw');
             const originalFilename = file.originalname;
 
+            // Step 1: Upload media to WhatsApp to get a media ID
+            const form = new FormData();
+            form.append('messaging_product', 'whatsapp');
+            form.append('file', file.buffer, {
+                filename: originalFilename,
+                contentType: file.mimetype,
+            });
+
+            const uploadHeaders = {
+                ...form.getHeaders(),
+                'Authorization': `Bearer ${company.whatsapp.accessToken}`,
+            };
+
+            const uploadResponse = await axios.post(
+                `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/media`,
+                form,
+                { headers: uploadHeaders }
+            );
+            const mediaId = uploadResponse.data.id;
+
+            // Step 2: Send the message using the media ID
+            const messageType = file.mimetype.split('/')[0]; // 'image', 'video', 'audio'
+            let apiRequestData;
+
+            if (messageType === 'image') {
+                apiRequestData = { type: "image", image: { id: mediaId } };
+            } else if (messageType === 'video') {
+                apiRequestData = { type: "video", video: { id: mediaId } };
+            } else if (messageType === 'audio') {
+                apiRequestData = { type: "audio", audio: { id: mediaId } };
+            } else { // Treat as document
+                apiRequestData = { type: "document", document: { id: mediaId, filename: originalFilename } };
+            }
+            
+            const finalApiRequestData = {
+                messaging_product: "whatsapp",
+                to: conversation.customerPhone,
+                ...apiRequestData
+            };
+
+            const sendHeaders = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+            const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
+            const metaMessageId = metaResponse.data.messages[0].id;
+
+            // Step 3: Upload to Cloudinary for persistent storage
+            const resourceTypeForUpload = ['image', 'video'].includes(messageType) ? messageType : 'raw';
             const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
                 const uploadStream = cloudinary.uploader.upload_stream({
-                    resource_type: resourceType,
-                    upload_preset: 'whatsapp_files'
+                    resource_type: resourceTypeForUpload,
+                    upload_preset: 'whatsapp_files',
+                    folder: `${companyId}/media` // Organize files by company
                 }, (error, result) => {
                     if (error) return reject(error);
                     resolve(result);
                 });
                 uploadStream.end(file.buffer);
             });
-
             const mediaUrl = cloudinaryUploadResponse.secure_url;
-            let apiRequestData;
-            let messageTypeForDB;
 
-            if (resourceType === 'image') {
-                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "image", image: { link: mediaUrl } };
-                messageTypeForDB = 'image';
-            } else if (resourceType === 'video') {
-                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "video", video: { link: mediaUrl } };
-                messageTypeForDB = 'video';
+            // Step 4: Save the message to our database
+            let messageTypeForDB;
+            if (['image', 'video', 'audio'].includes(messageType)) {
+                messageTypeForDB = messageType;
             } else {
-                apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, type: "document", document: { link: mediaUrl, filename: originalFilename } };
                 messageTypeForDB = 'document';
             }
-
-            const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, apiRequestData, { headers });
-            const metaMessageId = metaResponse.data.messages[0].id;
 
             const sentMessage = new Message({
                 conversationId: req.params.id,
@@ -145,11 +194,13 @@ module.exports = function(io) {
                 messageType: messageTypeForDB,
                 content: mediaUrl,
                 filename: originalFilename,
-                wabaMessageId: metaMessageId
+                wabaMessageId: metaMessageId,
+                cloudinaryPublicId: cloudinaryUploadResponse.public_id,
+                cloudinaryResourceType: cloudinaryUploadResponse.resource_type
             });
             await sentMessage.save();
 
-            conversation.lastMessage = messageTypeForDB === 'image' ? 'Image' : originalFilename;
+            conversation.lastMessage = messageTypeForDB === 'image' ? 'Image' : (messageTypeForDB === 'video' ? 'Video' : originalFilename);
             conversation.lastMessageTimestamp = sentMessage.createdAt;
             await conversation.save();
 
@@ -196,6 +247,85 @@ module.exports = function(io) {
         } catch (error) {
             console.error("Error sending template message:", error.response ? error.response.data : error);
             res.status(500).json({ message: 'Failed to send template message' });
+        }
+    });
+
+    // GET notes for a specific conversation
+    router.get('/:id/notes', isAuthenticated, async (req, res) => {
+        try {
+            const conversation = await Conversation.findOne({ _id: req.params.id, companyId: req.session.companyId });
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found' });
+            }
+            res.status(200).json({ notes: conversation.notes || '' });
+        } catch (error) {
+            res.status(500).json({ message: 'Failed to fetch notes' });
+        }
+    });
+
+    // POST to save notes for a specific conversation
+    router.post('/:id/notes', isAuthenticated, async (req, res) => {
+        try {
+            const { notes } = req.body;
+            const conversation = await Conversation.findOneAndUpdate(
+                { _id: req.params.id, companyId: req.session.companyId },
+                { notes: notes },
+                { new: true }
+            );
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found' });
+            }
+            res.status(200).json({ message: 'Notes saved successfully!' });
+        } catch (error) {
+            res.status(500).json({ message: 'Failed to save notes' });
+        }
+    });
+
+    // POST to update conversation status
+    router.post('/:id/status', isAuthenticated, async (req, res) => {
+        try {
+            const { status } = req.body;
+            const validStatuses = {
+                'new': 'جديدة',
+                'in_progress': 'قيد التنفيذ',
+                'resolved': 'تم حلها'
+            };
+
+            if (!validStatuses[status]) {
+                return res.status(400).json({ message: 'Invalid status value.' });
+            }
+
+            const conversation = await Conversation.findOneAndUpdate(
+                { _id: req.params.id, companyId: req.session.companyId },
+                { status: status },
+                { new: true }
+            );
+
+            if (!conversation) {
+                return res.status(404).json({ message: 'Conversation not found' });
+            }
+            
+            const company = await Company.findById(req.session.companyId);
+            if (company && company.whatsapp.accessToken) {
+                const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
+                const apiRequestData = {
+                    messaging_product: "whatsapp", to: conversation.customerPhone, type: "template",
+                    template: {
+                        name: "status_update", language: { code: "ar" },
+                        components: [{ type: "body", parameters: [{ type: "text", text: validStatuses[status] }]}]
+                    }
+                };
+                const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+                axios.post(whatsappApiUrl, apiRequestData, { headers }).catch(err => {
+                    console.error("Failed to send status update template:", err.response ? err.response.data : err.message);
+                });
+            }
+            
+            io.to(req.session.companyId.toString()).emit('conversation_updated', conversation);
+            res.status(200).json(conversation);
+        } catch (error) {
+            console.error("Error updating status:", error);
+            res.status(500).json({ message: 'Failed to update status' });
         }
     });
 

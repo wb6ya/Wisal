@@ -1,48 +1,37 @@
-// public/js/login.js
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
+    const verifyForm = document.getElementById('verifyForm');
     const registerForm = document.getElementById('registerForm');
 
-// In public/js/login.js
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Stop the page from refreshing
-        
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        const messageEl = document.getElementById('loginMessage');
-        messageEl.textContent = '';
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const messageEl = document.getElementById('loginMessage');
+            messageEl.textContent = '';
 
-        try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            // --- THIS IS THE NEW DIAGNOSTIC LOG ---
-            console.log("Server Response:", data);
-
-            // Check if login was successful and the server sent a redirect URL
-            if (response.ok && data.redirectUrl) {
-                // If yes, redirect the browser to the dashboard
-                window.location.href = data.redirectUrl;
-            } else {
-                // If not, show an error message
-                messageEl.textContent = data.message || 'Login failed.';
+                if (response.ok && data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    messageEl.textContent = data.message || 'Login failed.';
+                    messageEl.style.color = 'red';
+                }
+            } catch (error) {
+                messageEl.textContent = 'An error occurred while connecting to the server.';
                 messageEl.style.color = 'red';
             }
-
-        } catch (error) {
-            console.error("Login Fetch Error:", error);
-            messageEl.textContent = 'An error occurred while connecting to the server.';
-            messageEl.style.color = 'red';
-        }
-    });
-}
-
+        });
+    }
     if (registerForm) {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();

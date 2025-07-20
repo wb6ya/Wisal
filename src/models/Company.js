@@ -8,7 +8,7 @@ const CompanySchema = new mongoose.Schema({
     whatsapp: {
         accessToken: { type: String },
         phoneNumberId: { type: String },
-        verifyToken: { type: String }
+        verifyToken: { type: String },
     }
 }, { timestamps: true });
 

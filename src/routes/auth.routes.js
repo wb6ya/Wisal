@@ -4,6 +4,10 @@ const Company = require('../models/Company');
 const Employee = require('../models/Employee');
 const router = express.Router();
 
+function generate2FACode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 router.post('/register', async (req, res) => {
     try {
         const { companyName, email, password } = req.body;
@@ -21,7 +25,9 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const employee = await Employee.findOne({ email });
+
+        // 1. Check if the user is an Employee
+        let employee = await Employee.findOne({ email });
         if (employee) {
             const isMatch = await bcrypt.compare(password, employee.password);
             if (isMatch) {
@@ -31,21 +37,57 @@ router.post('/login', async (req, res) => {
                 return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
             }
         }
-        const company = await Company.findOne({ email });
+
+        // 2. If not an employee, check if the user is a Company Owner
+        let company = await Company.findOne({ email });
         if (company) {
             const isMatch = await bcrypt.compare(password, company.password);
             if (isMatch) {
                 req.session.userId = company._id;
                 req.session.companyId = company._id;
-
                 req.session.role = 'admin';
                 return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
             }
         }
+        
+        // 3. If neither, login fails
         return res.status(400).json({ message: 'Invalid email or password' });
+
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ message: 'Server error during login' });
+    }
+});
+
+// Step 2 of Login: Verify 2FA code and create session
+router.post('/verify-2fa', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        let user = await Employee.findOne({ email }) || await Company.findOne({ email });
+
+        if (!user || user.twoFactorCode !== code || user.twoFactorExpires < Date.now()) {
+            return res.status(400).json({ message: 'Invalid or expired verification code.' });
+        }
+
+        // Clear the 2FA code
+        user.twoFactorCode = undefined;
+        user.twoFactorExpires = undefined;
+        await user.save();
+
+        // Create the session
+        req.session.userId = user._id;
+        if (user instanceof Company) {
+            req.session.companyId = user._id;
+            req.session.role = 'admin';
+        } else { // It's an Employee
+            req.session.companyId = user.companyId;
+            req.session.role = user.role;
+        }
+
+        res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
+    } catch (error) {
+        console.error("Login Step 2 error:", error);
+        res.status(500).json({ message: 'Server error during verification' });
     }
 });
 

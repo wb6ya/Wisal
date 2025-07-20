@@ -50,6 +50,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 2. Helper Functions ---
 
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('/api/analytics/summary');
+                const data = await response.json();
+
+                document.getElementById('totalConversationsStat').textContent = data.totalConversations;
+                document.getElementById('totalMessagesStat').textContent = data.totalMessages;
+                document.getElementById('messageBreakdownStat').textContent = `${data.incomingMessages} واردة / ${data.outgoingMessages} صادرة`;
+                document.getElementById('newConversationsStat').textContent = data.newConversationsLast7Days;
+            } catch (error) {
+                console.error('Failed to load analytics:', error);
+            }
+        }
+
         async function loadEmployees() {
         if (!employeesTableBody) return;
         try {
@@ -217,22 +231,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const statusIndicator = `<div class="status-indicator status-${conv.status}" title="الحالة: ${conv.status}"></div>`;
 
                 convItem.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        ${statusIndicator}
-                        <div class="avatar me-3" style="background-color: ${avatarColor};">
-                            <span>${firstLetter}</span>
+                    <div class="avatar me-3" style="background-color: ${avatarColor};">
+                        <span>${firstLetter}</span>
+                    </div>
+                    <div class="conv-item-details">
+                        <div class="d-flex w-100 justify-content-between">
+                            <span class="customer-name text-truncate">${customerName}</span>
+                            <small class="text-nowrap text-muted">${relativeTime}</small>
                         </div>
-                        <div class="conv-item-details">
-                            <div class="d-flex w-100 justify-content-between">
-                                <span class="customer-name text-truncate">${customerName}</span>
-                                <small class="text-nowrap text-muted">${relativeTime}</small>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <p class="last-message text-muted text-truncate mb-0 flex-grow-1">${lastMessageContent}</p>
-                                ${unreadBadge}
-                            </div>
+                        <div class="d-flex align-items-center">
+                            <p class="last-message text-muted text-truncate mb-0 flex-grow-1">${lastMessageContent}</p>
+                            ${unreadBadge}
                         </div>
                     </div>
+                    ${statusIndicator}
                 `;
                 if (conv._id === activeConvId) {
                     convItem.classList.add('active');
@@ -308,6 +320,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const messageText = replyMessageInput.value;
             if (!messageText.trim() || !activeConversationId) return;
+
+            const replyButton = document.getElementById('replyButton');
+            const originalButtonContent = replyButton.innerHTML; // حفظ شكل الزر الأصلي
+
+            // --- هذا هو الجزء الجديد: تفعيل مؤشر التحميل ---
+            // تعطيل الزر ووضع مؤشر التحميل
+            replyButton.disabled = true;
+            replyButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
+            // ---------------------------------------------
+
             try {
                 const response = await fetch(`/api/conversations/${activeConversationId}/reply`, {
                     method: 'POST',
@@ -315,18 +337,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ message: messageText, contextMessageId: messageToReplyToId })
                 });
                 if (response.ok) {
-                    // The message will be appended via the 'new_message' socket event.
-                    // This prevents the message from appearing twice.
+                    // Let the 'new_message' socket event handle appending the message
                     replyMessageInput.value = '';
-                    if(replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
+                    if (replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
                     messageToReplyToId = null;
                 } else {
                     const data = await response.json();
                     alert('Failed to send reply: ' + (data.message || 'Unknown error'));
                 }
             } catch (error) {
-                console.error("Error sending reply:", error);
                 alert('An unexpected error occurred.');
+            } finally {
+                // --- الجزء الجديد: إعادة الزر إلى حالته الطبيعية ---
+                // سواء نجحت العملية أو فشلت، قم بإعادة الزر
+                replyButton.disabled = false;
+                replyButton.innerHTML = originalButtonContent;
+                replyMessageInput.focus();
+                // ---------------------------------------------
             }
         });
     }
@@ -655,6 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 5. INITIAL PAGE LOAD ---
     if (document.getElementById('conv-list')) {
         loadConversations();
+        loadAnalytics();
         requestNotificationPermission();
     }
 });

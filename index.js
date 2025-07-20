@@ -1,3 +1,6 @@
+// =================================================================
+// 1. IMPORTS & INITIAL SETUP
+// =================================================================
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,13 +10,23 @@ const path = require('path');
 const http = require('http');
 const { Server } = require("socket.io");
 const cloudinary = require('cloudinary').v2;
+const bcrypt = require('bcrypt');
+const axios = require('axios');
+const multer = require('multer');
+const mime = require('mime-types');
 
+// =================================================================
+// 2. CONFIGURATIONS
+// =================================================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// =================================================================
+// 3. EXPRESS APP & SOCKET.IO INITIALIZATION
+// =================================================================
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -23,7 +36,9 @@ const pagesRouter = require('./src/routes/pages');
 const apiRouter = require('./src/routes/api')(io);
 const webhookRouter = require('./src/routes/webhook')(io);
 
-// Middleware
+// =================================================================
+// 4. MIDDLEWARE
+// =================================================================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
 app.use(express.json());
@@ -42,20 +57,27 @@ io.use((socket, next) => {
     sessionMiddleware(socket.request, {}, next);
 });
 
-// Socket.IO Connection Handling
+// =================================================================
+// 5. SOCKET.IO CONNECTION HANDLING
+// =================================================================
 io.on('connection', (socket) => {
     const session = socket.request.session;
-    if (session && session.userId) {
+    if (session && session.companyId) {
         socket.join(session.companyId.toString());
+        console.log(`Socket ${socket.id} connected and joined room ${session.companyId}`);
     }
 });
 
-// Route Definitions
+// =================================================================
+// 6. ROUTE DEFINITIONS
+// =================================================================
 app.use('/', pagesRouter);
 app.use('/api', apiRouter);
 app.use('/webhook', webhookRouter);
 
-// Server Start
+// =================================================================
+// 7. SERVER START
+// =================================================================
 mongoose.connect(process.env.MONGO_URI)
     .then(() => {
         console.log('Database connected successfully!');

@@ -3,32 +3,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const employeeSchema = new mongoose.Schema({
-    companyId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Company',
-        required: true
-    },
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true, // يجب أن يكون البريد الإلكتروني فريدًا على مستوى كل الموظفين
-        trim: true,
-        lowercase: true
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    role: {
-        type: String,
-        enum: ['agent', 'admin'], // يمكننا تطوير الصلاحيات لاحقًا
-        default: 'agent'
-    }
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ['agent', 'admin'], default: 'agent' },
 }, { timestamps: true });
 
 // تشفير كلمة المرور تلقائيًا قبل الحفظ

@@ -14,7 +14,9 @@ const Employee = require('../models/Employee');
 const conversationsRouter = require('./conversations.routes');
 const templatesRouter = require('./templates.routes');
 const { isAuthenticated } = require('../middleware/auth');
+const analyticsRouter = require('./analytics.routes');
 const employeesRouter = require('./employees.routes');
+const customersRouter = require('./customers.routes'); 
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -23,6 +25,8 @@ module.exports = function(io) {
     router.use('/conversations', conversationsRouter(io));
     router.use('/templates', isAuthenticated, templatesRouter);
     router.use('/employees', employeesRouter);
+    router.use('/analytics', analyticsRouter);
+    router.use('/customers', customersRouter); 
 
     // User & Company Management
     router.post('/register', async (req, res) => {
@@ -91,134 +95,27 @@ module.exports = function(io) {
         }
     });
 
-    // Conversation & Message Management
-    router.get('/conversations', isAuthenticated, async (req, res) => {
+
+    router.post('/conversations/:id/media', isAuthenticated, upload.single('file'), async (req, res) => {
         try {
-            const conversations = await Conversation.find({ companyId: req.session.companyId }).sort({ lastMessageTimestamp: -1 });
-            res.status(200).json(conversations);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching conversations' });
-        }
-    });
-
-    router.get('/conversations/:id/messages', isAuthenticated, async (req, res) => {
-        try {
-            const conversation = await Conversation.findOne({ _id: req.params.id, companyId: req.session.companyId });
-            if (!conversation) return res.status(404).json({ message: "Conversation not found" });
-
-            if (conversation && conversation.unreadCount > 0) {
-                conversation.unreadCount = 0;
-                await conversation.save();
-                io.to(req.session.companyId.toString()).emit('conversation_updated', conversation);
-            }
-            const messages = await Message.find({ conversationId: req.params.id }).sort({ createdAt: 'asc' });
-            res.status(200).json(messages);
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching messages' });
-        }
-    });
-
-    router.get('/conversations/:id/notes', isAuthenticated, async (req, res) => {
-        try {
-            const conversation = await Conversation.findOne({ _id: req.params.id, companyId: req.session.companyId });
-            if (!conversation) {
-                return res.status(404).json({ message: 'Conversation not found' });
-            }
-            res.status(200).json({ notes: conversation.notes || '' });
-        } catch (error) {
-            res.status(500).json({ message: 'Failed to fetch notes' });
-        }
-    });
-
-    // مسار لحفظ الملاحظات لمحادثة معينة
-    router.post('/conversations/:id/notes', isAuthenticated, async (req, res) => {
-        try {
-            const { notes } = req.body;
-            const conversation = await Conversation.findOneAndUpdate(
-                { _id: req.params.id, companyId: req.session.companyId },
-                { notes: notes },
-                { new: true }
-            );
-            if (!conversation) {
-                return res.status(404).json({ message: 'Conversation not found' });
-            }
-            res.status(200).json({ message: 'Notes saved successfully!' });
-        } catch (error) {
-            res.status(500).json({ message: 'Failed to save notes' });
-        }
-    });
-
-    router.post('/conversations/:id/reply', isAuthenticated, async (req, res) => {
-        try {
-            const companyId = req.session.companyId;
-            const company = await Company.findById(companyId);
-            if (!company || !company.whatsapp.accessToken) {
-                return res.status(401).json({ message: 'Invalid Access Token. Please update your settings.', redirectTo: '/dashboard' });
-            }
-            
-            const conversation = await Conversation.findById(req.params.id);
-            if (!conversation) return res.status(404).json({ message: "Conversation not found" });
-
-            const { message, contextMessageId } = req.body;
-            const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
-            const apiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, text: { body: message } };
-            let originalMessage = null;
-            // Add context if it's a reply
-            if (contextMessageId) {
-                originalMessage = await Message.findById(contextMessageId);
-                if (originalMessage) {
-                    apiRequestData.context = { message_id: originalMessage.wabaMessageId };
-                }
-            }
-
-            const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const metaResponse = await axios.post(whatsappApiUrl, apiRequestData, { headers });
-            const metaMessageId = metaResponse.data.messages[0].id;
-
-            const sentMessageData = {
-                conversationId: req.params.id,
-                sender: 'agent',
-                messageType: 'text',
-                content: message,
-                wabaMessageId: metaMessageId
-            };
-
-            if (originalMessage) {
-                const originalSenderName = originalMessage.sender === 'agent' ? company.companyName : conversation.customerName;
-                const originalContent = originalMessage.messageType === 'text' ? originalMessage.content : (originalMessage.filename || `a ${originalMessage.messageType}`);
-                sentMessageData.repliedToMessageId = originalMessage._id;
-                sentMessageData.repliedToMessageContent = originalContent.substring(0, 70) + (originalContent.length > 70 ? '...' : '');
-                sentMessageData.repliedToMessageSender = originalSenderName;
-            }
-
-            const sentMessage = new Message(sentMessageData);
-            await sentMessage.save();
-            
-            conversation.lastMessage = sentMessage.content;
-            conversation.lastMessageTimestamp = sentMessage.createdAt;
-            await conversation.save();
-            
-            io.to(companyId.toString()).emit('conversation_updated', conversation);
-            io.to(companyId.toString()).emit('new_message', sentMessage);
-            res.status(200).json(sentMessage);
-        } catch (error) {
-            console.error("Error sending reply:", error.response ? error.response.data : error);
-            const errorMessage = error.response?.data?.error?.message || 'Failed to send message.';
-            res.status(401).json({ message: errorMessage, redirectTo: '/dashboard' });
-        }
-    });
-
-    router.post('/conversations/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
-        try {
-            const companyId = req.session.companyId;
-            const company = await Company.findById(companyId);
-            const conversation = await Conversation.findById(req.params.id);
-            if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
-                return res.status(400).json({ message: "Missing file, company data, or access token." });
-            }
-
+            const { companyId } = req.session;
+            const { id: conversationId } = req.params;
             const file = req.file;
+
+            if (!file) {
+                return res.status(400).json({ message: 'No file uploaded.' });
+            }
             const originalFilename = file.originalname;
+
+            const company = await Company.findById(companyId);
+            if (!company || !company.whatsapp.accessToken || !company.whatsapp.phoneNumberId) {
+                return res.status(400).json({ message: 'WhatsApp API credentials not set.' });
+            }
+
+            const conversation = await Conversation.findById(conversationId);
+            if (!conversation || conversation.companyId.toString() !== companyId) {
+                return res.status(404).json({ message: 'Conversation not found.' });
+            }
 
             // Step 1: Upload media to WhatsApp to get a media ID
             const form = new FormData();

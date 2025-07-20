@@ -13,7 +13,6 @@
     --font-family-base: 'Tajawal', sans-serif;
     --body-bg: #1a202c; /* Dark Slate */
     --container-bg: #2d3748; /* Lighter Slate */
-    --sidebar-bg: #1a202c;
     --chat-bg: #0d1418; /* Very Dark, almost black for chat background */
     --header-bg: #2d3748;
     --input-bg: #4a5568;
@@ -33,10 +32,36 @@
     --info-color: #3182ce;
 }
 
+.app-layout > main,
+.app-layout > section {
+    margin-right: var(--sidebar-width); /* Use right margin for RTL */
+    flex-grow: 1;
+    transition: margin-right var(--sidebar-transition-speed) ease;
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
+.conversations-panel {
+    margin-right: 0 !important;
+    grid-column: 2;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
 
+.chat-panel {
+    margin-right: 0 !important;;
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
 body {
     background-color: var(--body-bg);
     color: var(--text-primary);
@@ -47,16 +72,23 @@ body {
 
 /* --- 2. Main Layout & Structure --- */
 .app-layout {
-    display: grid;
-    grid-template-columns: 260px 380px 1fr;
+    display: grid !important;
+    grid-template-columns: 260px 1.5fr 3.5fr;
     height: 100vh;
 }
 
-.main-sidebar, .conversations-panel, .chat-panel {
+
+.conversations-panel, .chat-panel {
     display: flex;
     flex-direction: column;
     height: 100vh;
     background-color: var(--container-bg);
+    min-width: 0; /* Prevents panel from growing beyond its grid area */
+}
+.conversations-panel {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .btn-icon {
@@ -79,144 +111,126 @@ body {
 
 /* --- 3. Components --- */
 
-/* 3.1 Main Sidebar (Right in RTL) */
-.main-sidebar {
-    background-color: var(--sidebar-bg);
-    border-left: 1px solid var(--border-color);
-}
-.sidebar-header {
-    padding: 1.25rem;
-    flex-shrink: 0;
-}
-.sidebar-brand {
-    font-size: 1.75rem;
-    font-weight: 700;
-    text-decoration: none;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-}
-.sidebar-nav {
-    padding: 0 1rem;
-    flex-grow: 1;
-}
-.sidebar-nav .nav-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.sidebar-nav .nav-link {
-    color: var(--text-secondary);
-    font-weight: 500;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 1.1rem;
-}
-.sidebar-nav .nav-link:hover {
-    background-color: var(--hover-bg-color);
-    color: var(--text-primary);
-}
-.sidebar-nav .nav-link.active {
-    background-color: var(--accent-color);
-    color: white;
-}
-.sidebar-footer {
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
-    background-color: rgba(0,0,0,0.1);
-}
-.avatar-sm {
-    width: 32px; height: 32px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
 /* 3.2 Conversations Panel (Middle) */
 .conversations-panel {
     border-left: 1px solid var(--border-color);
+    background-color: var(--body-bg); /* Use the darkest background */
 }
+
 .panel-header {
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
-    background-color: var(--header-bg);
+    background-color: var(--container-bg); /* Slightly lighter header */
     min-height: 75px;
 }
+
 .panel-actions {
     display: flex;
     gap: 0.5rem;
 }
+
 .search-container {
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     border-bottom: 1px solid var(--border-color);
+    background-color: var(--container-bg);
 }
+
 .search-container .form-control {
     background-color: var(--input-bg);
-    border-color: var(--border-color);
+    border-color: transparent;
     color: var(--text-primary);
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
 }
+
 .search-container .form-control:focus {
-    background-color: var(--container-bg);
+    background-color: var(--body-bg);
     border-color: var(--accent-color);
     box-shadow: none;
     color: var(--text-primary);
 }
+
 .list-group {
     overflow-y: auto;
     flex-grow: 1;
 }
+
 .list-group-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* Vertically center align items */
     gap: 15px;
     padding: 1rem 1.25rem;
     border: none;
     border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, border-right-width 0.2s ease;
     cursor: pointer;
-    background-color: var(--sidebar-bg);
+    background-color: transparent; /* Let the panel bg show through */
     border-right: 4px solid transparent; /* For active state in RTL */
 }
+
 .list-group-item:hover {
     background-color: var(--hover-bg-color);
 }
+
 .list-group-item.active {
     background-color: var(--active-list-item-bg) !important;
+    border-right-width: 4px;
     border-right-color: var(--accent-color);
 }
+
 .conv-item-details {
     flex-grow: 1;
     overflow: hidden;
 }
+
 .conv-item-details .customer-name {
     font-weight: 700;
     color: var(--text-primary);
+    font-size: 1.05em;
 }
+
 .conv-item-details .last-message {
     font-size: 0.9em;
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: 2px; /* Reduced margin */
 }
+
 .avatar {
-    width: 48px; height: 48px; border-radius: 50%;
-    color: white; display: flex; align-items: center;
-    justify-content: center; font-weight: bold;
-    font-size: 1.2rem; flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
 }
+
+.list-group-item:hover .avatar {
+    transform: scale(1.05);
+}
+
 .unread-badge {
     background-color: var(--accent-color);
-    color: white; font-size: 0.75rem; font-weight: 700;
-    border-radius: 50%; width: 24px; height: 24px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; animation: fadeIn 0.3s ease;
+    color: var(--body-bg);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: fadeIn 0.3s ease;
+    margin-right: auto; /* Pushes it to the end in RTL */
 }
 
 /* 3.3 Chat Panel (Left in RTL) */
@@ -569,8 +583,14 @@ body {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-left: 8px; /* For RTL */
+    margin-right: 8px; /* Adjusted for new position in RTL */
     flex-shrink: 0;
+    align-self: center; /* Center it vertically */
+    transition: transform 0.3s ease;
+}
+
+.list-group-item:hover .status-indicator {
+    transform: scale(1.3);
 }
 
 .status-new { background-color: #0d6efd; } /* Blue for New */
@@ -579,4 +599,39 @@ body {
 
 .chat-header .dropdown-menu {
     min-width: 10rem;
+}
+
+/* --- 5. Responsive Design --- */
+@media (max-width: 1200px) {
+    .app-layout {
+        /* Give more space to the chat panel on medium screens */
+        grid-template-columns: 260px 2.5fr 5.5fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .app-layout {
+        /* Make sidebar smaller and give chat more space */
+        grid-template-columns: 200px 3fr 6fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-layout {
+        /* On small screens, show only the sidebar and the active panel */
+        grid-template-columns: 1fr;
+    }
+
+    .conversations-panel {
+        /* Hide the conversations list by default on mobile */
+        display: none;
+    }
+    
+    .chat-panel {
+        /* Take up the full view if a chat is active */
+        display: flex;
+    }
+
+    /* You would need JS to toggle between conversations and chat view,
+       but this CSS sets up the responsive structure. */
 }
