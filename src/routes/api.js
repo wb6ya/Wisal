@@ -10,12 +10,19 @@ const Company = require('../models/Company');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const CannedResponse = require('../models/CannedResponse');
+const Employee = require('../models/Employee');
+const conversationsRouter = require('./conversations.routes');
+const templatesRouter = require('./templates.routes');
 const { isAuthenticated } = require('../middleware/auth');
+const employeesRouter = require('./employees.routes');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 module.exports = function(io) {
     const router = express.Router();
+    router.use('/conversations', conversationsRouter(io));
+    router.use('/templates', isAuthenticated, templatesRouter);
+    router.use('/employees', employeesRouter);
 
     // User & Company Management
     router.post('/register', async (req, res) => {
@@ -35,13 +42,29 @@ module.exports = function(io) {
     router.post('/login', async (req, res) => {
         try {
             const { email, password } = req.body;
+            const employee = await Employee.findOne({ email });
+            if (employee) {
+                const isMatch = await bcrypt.compare(password, employee.password);
+                if (isMatch) {
+                    req.session.userId = employee._id;
+                    req.session.companyId = employee.companyId;
+                    req.session.role = employee.role;
+                    return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
+                }
+            }
             const company = await Company.findOne({ email });
-            if (!company) return res.status(400).json({ message: 'Invalid email or password' });
-            const isMatch = await bcrypt.compare(password, company.password);
-            if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
-            req.session.companyId = company._id;
-            res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
+            if (company) {
+                const isMatch = await bcrypt.compare(password, company.password);
+                if (isMatch) {
+                    req.session.userId = company._id;
+                    req.session.companyId = company._id;
+                    req.session.role = 'admin';
+                    return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
+                }
+            }
+            return res.status(400).json({ message: 'Invalid email or password' });
         } catch (error) {
+            console.error("Login error:", error);
             res.status(500).json({ message: 'Server error during login' });
         }
     });

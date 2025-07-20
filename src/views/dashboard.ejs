@@ -8,62 +8,50 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/css/dashboard.css">
 </head>
-<body>
-    <!-- Container for non-blocking toast notifications -->
+<body data-cloud-name="<%= cloudName %>">
     <div id="toast-container"></div>
 
     <div class="app-layout">
-        <!-- =================================================================
-        Sidebar: Redesigned for a cleaner, more modern look with better user info handling.
-        ================================================================== -->
         <aside class="main-sidebar">
             <header class="sidebar-header">
                 <a href="/dashboard" class="sidebar-brand"><i class="bi bi-whatsapp me-2"></i> Wisal</a>
             </header>
             <nav class="sidebar-nav">
-                <ul class="nav-list">
-                    <li class="nav-item">
-                        <a href="#" class="nav-link active" aria-current="page">
-                            <i class="bi bi-chat-left-text-fill"></i><span>الرسائل</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#cannedResponseModal">
-                            <i class="bi bi-lightning-charge-fill"></i><span>الردود السريعة</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="bi bi-people-fill"></i><span>العملاء</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="bi bi-bar-chart-line-fill"></i><span>التقارير</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <footer class="sidebar-footer">
-                <div class="dropup">
-                    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="avatar-sm me-2" style="background-color: #4a5568;">
-                            <%= company.companyName.charAt(0).toUpperCase() %>
-                        </div>
-                        <strong class="text-truncate" style="max-width: 150px;"><%= company.companyName %></strong>
+                <ul class="sidebar-nav">
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-house-door-fill me-3"></i> الرئيسية</a></li>
+                <li class="nav-item"><a href="#" class="nav-link active"><i class="bi bi-chat-left-text-fill me-3"></i> الرسائل</a></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#employeesModal">
+                        <i class="bi bi-person-badge-fill me-3"></i><span>إدارة الموظفين</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
-                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">الإعدادات</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="/api/logout">تسجيل الخروج</a></li>
-                    </ul>
-                </div>
-            </footer>
+                </li>
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-people-fill me-3"></i> العملاء</a></li>
+                <li class="nav-item"><a href="#" class="nav-link"><i class="bi bi-bar-chart-line-fill me-3"></i> التقارير</a></li>
+            </ul>
+            </nav>
+                <footer class="sidebar-footer">
+                    <div class="dropup">
+                        <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-sm me-2" style="background-color: #4a5568;">
+                                <%= user.name.charAt(0).toUpperCase() %>
+                            </div>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <strong class="text-truncate d-block" style="max-width: 150px;"><%= user.name %></strong>
+                                <small class="text-muted"><%= user.role %></small>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
+                            <% if (user.role === 'Admin') { %>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#employeesModal">إدارة الموظفين</a></li>
+                            <% } %>
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">الإعدادات</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="/api/logout">تسجيل الخروج</a></li>
+                        </ul>
+                    </div>
+                </footer>
         </aside>
 
-        <!-- =================================================================
-        Conversations Panel
-        ================================================================== -->
         <section class="conversations-panel">
             <header class="panel-header">
                 <h4 class="mb-0">المحادثات</h4>
@@ -76,13 +64,9 @@
                 <input type="text" id="conversationSearch" class="form-control" placeholder="ابحث بالاسم أو الرقم...">
             </div>
             <div class="list-group list-group-flush" id="conv-list">
-                <!-- Conversation items are dynamically loaded here by dashboard.js -->
-            </div>
+                </div>
         </section>
 
-        <!-- =================================================================
-        Main Chat Panel
-        ================================================================== -->
         <main class="chat-panel">
             <header class="chat-header">
                 <div id="chat-header-content" class="d-flex align-items-center" style="visibility: hidden;">
@@ -139,11 +123,6 @@
         </main>
     </div>
 
-    <!-- =================================================================
-    Modals
-    ================================================================== -->
-
-    <!-- Settings Modal -->
     <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -185,7 +164,6 @@
         </div>
     </div>
 
-    <!-- New Chat Modal -->
     <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
          <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -210,50 +188,6 @@
         </div>
     </div>
 
-    <!-- Canned Responses Modal -->
-    <div class="modal fade" id="cannedResponseModal" tabindex="-1" aria-labelledby="cannedResponseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cannedResponseModalLabel">إدارة الردود السريعة</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="canned-response-manager">
-                        <div class="canned-form-container">
-                            <h6>إضافة رد جديد</h6>
-                            <form id="addCannedResponseForm">
-                                <div class="mb-3">
-                                    <label for="cannedShortcut" class="form-label">الاختصار (e.g. /thanks)</label>
-                                    <input type="text" class="form-control" id="cannedShortcut" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="cannedMessage" class="form-label">نص الرسالة</label>
-                                    <textarea class="form-control" id="cannedMessage" rows="3" required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">إضافة الرد</button>
-                            </form>
-                        </div>
-                        <div class="canned-list-container">
-                            <h6>الردود المحفوظة</h6>
-                            <ul class="list-group" id="cannedResponsesList">
-                                <!-- Canned responses will be loaded here by JS -->
-                                <li class="list-group-item d-flex justify-content-between align-items-start">
-                                    <div class="ms-2 me-auto">
-                                        <div class="fw-bold">/thanks</div>
-                                        شكراً لتواصلك معنا!
-                                    </div>
-                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Canned Responses Modal -->
     <div class="modal fade" id="cannedResponseModal" tabindex="-1" aria-labelledby="cannedResponseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -280,7 +214,6 @@
                         <div class="canned-list-container">
                             <h6 class="mb-3">الردود المحفوظة</h6>
                             <div class="list-group" id="cannedResponsesList">
-                                <!-- Canned responses will be loaded here by JS -->
                                 <p class="text-muted text-center" id="canned-list-placeholder">لا توجد ردود محفوظة.</p>
                             </div>
                         </div>
@@ -289,7 +222,7 @@
             </div>
         </div>
     </div>
-    <!-- Notes Modal -->
+
     <div class="modal fade" id="notesModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -308,6 +241,53 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
                     <button type="button" id="saveNotesBtn" class="btn btn-primary">حفظ الملاحظات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="employeesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">إدارة الموظفين</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6>إضافة موظف جديد</h6>
+                            <form id="addEmployeeForm">
+                                <div class="mb-3">
+                                    <label for="employeeName" class="form-label">اسم الموظف</label>
+                                    <input type="text" class="form-control" id="employeeName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="employeeEmail" class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" class="form-control" id="employeeEmail" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="employeePassword" class="form-label">كلمة المرور</label>
+                                    <input type="password" class="form-control" id="employeePassword" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">إضافة موظف</button>
+                            </form>
+                        </div>
+                        <div class="col-md-7">
+                            <h6>الموظفون الحاليون</h6>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th>البريد الإلكتروني</th>
+                                        <th>إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeesTableBody">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

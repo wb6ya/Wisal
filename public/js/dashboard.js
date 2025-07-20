@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerNotesTextarea = document.getElementById('customerNotes');
     const saveNotesBtn = document.getElementById('saveNotesBtn');
     const notesStatus = document.getElementById('notesStatus');
+    const employeesModal = document.getElementById('employeesModal');
+    const addEmployeeForm = document.getElementById('addEmployeeForm');
+    const employeesTableBody = document.getElementById('employeesTableBody');
 
     // --- Socket.IO & State Initialization ---
     const socket = io();
@@ -46,6 +49,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMatchIndex = -1;
 
     // --- 2. Helper Functions ---
+
+        async function loadEmployees() {
+        if (!employeesTableBody) return;
+        try {
+            const response = await fetch('/api/employees');
+            const employees = await response.json();
+            employeesTableBody.innerHTML = '';
+            employees.forEach(emp => {
+                const row = `
+                    <tr>
+                        <td>${emp.name}</td>
+                        <td>${emp.email}</td>
+                        <td><button class="btn btn-sm btn-outline-danger" data-id="${emp._id}">حذف</button></td>
+                    </tr>
+                `;
+                employeesTableBody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (error) {
+            console.error('Failed to load employees:', error);
+        }
+    }
 
     function formatRelativeTime(dateString) {
         if (!dateString) return '';
@@ -558,6 +582,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+            if (employeesModal) {
+        employeesModal.addEventListener('shown.bs.modal', () => {
+            loadEmployees(); // تحميل قائمة الموظفين عند فتح النافذة
+        });
+    }
+
+    // NEW: Listener for Add Employee Form
+    if (addEmployeeForm) {
+        addEmployeeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('employeeName').value;
+            const email = document.getElementById('employeeEmail').value;
+            const password = document.getElementById('employeePassword').value;
+            
+            try {
+                const response = await fetch('/api/employees', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                if (response.ok) {
+                    loadEmployees(); // إعادة تحميل القائمة
+                    addEmployeeForm.reset();
+                } else {
+                    const errorData = await response.json();
+                    alert('فشل إضافة الموظف: ' + errorData.message);
+                }
+            } catch (error) {
+                alert('حدث خطأ.');
+            }
+        });
+    }
+
+    // NEW: Listener for Deleting Employees
+    if (employeesTableBody) {
+        employeesTableBody.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-outline-danger')) {
+                const employeeId = e.target.dataset.id;
+                if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
+                    await fetch(`/api/employees/${employeeId}`, { method: 'DELETE' });
+                    loadEmployees(); // إعادة تحميل القائمة
+                }
+            }
+        });
+    }
+    
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
         loadConversations();
