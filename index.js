@@ -10,10 +10,6 @@ const path = require('path');
 const http = require('http');
 const { Server } = require("socket.io");
 const cloudinary = require('cloudinary').v2;
-const bcrypt = require('bcrypt');
-const axios = require('axios');
-const multer = require('multer');
-const mime = require('mime-types');
 
 // =================================================================
 // 2. CONFIGURATIONS
@@ -64,16 +60,23 @@ io.on('connection', (socket) => {
     const session = socket.request.session;
     if (session && session.companyId) {
         socket.join(session.companyId.toString());
-        console.log(`Socket ${socket.id} connected and joined room ${session.companyId}`);
     }
 });
 
 // =================================================================
 // 6. ROUTE DEFINITIONS
 // =================================================================
+console.log("Registering page routes..."); // <-- السطر الأول
 app.use('/', pagesRouter);
+
+console.log("Registering API routes..."); // <-- السطر الثاني
 app.use('/api', apiRouter);
+
+// --- أضف الأوامر التشخيصية هنا ---
+console.log("Attempting to register webhook routes..."); // <-- السطر الثالث (قبل)
 app.use('/webhook', webhookRouter);
+console.log("✅ Webhook routes registered successfully!"); // <-- السطر الرابع (بعد)
+
 
 // =================================================================
 // 7. SERVER START

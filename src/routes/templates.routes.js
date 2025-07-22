@@ -31,7 +31,7 @@ router.post('/', isAuthenticated, async (req, res) => {
         }
 
         // 1. Send the request to Meta to create the template
-        const metaApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/message_templates`;
+        const metaApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/message_templates`;
         const apiRequestData = {
             name: name,
             category: category,
@@ -76,7 +76,7 @@ router.delete('/:name', isAuthenticated, async (req, res) => {
         }
 
         // 1. Send request to Meta to delete the template
-        const metaApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/message_templates`;
+        const metaApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/message_templates`;
         const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
         await axios.delete(metaApiUrl, { params: { name }, headers });
         

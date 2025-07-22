@@ -156,6 +156,18 @@ body {
 .status-in_progress { background-color: var(--status-inprogress-bg); color: var(--status-inprogress-text); }
 .status-resolved { background-color: var(--status-resolved-bg); color: var(--status-resolved-text); }
 
+/* Action Button */
+.btn-outline-primary {
+    color: var(--customers-accent-primary);
+    border-color: var(--customers-accent-primary);
+}
+
+.btn-outline-primary:hover {
+    color: #fff;
+    background-color: var(--customers-accent-primary);
+    border-color: var(--customers-accent-primary);
+}
+
 /* --- 7. Animations --- */
 @keyframes fadeIn {
     from { opacity: 0; }

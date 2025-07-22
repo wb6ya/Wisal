@@ -1,10 +1,3 @@
-/**
- * Filename: dashboard.js
- * Description: The complete client-side logic for the WhatsApp SaaS dashboard.
- * This file handles all UI interactions, real-time events via Socket.IO, and API calls.
- * Author: Google Gemini (Senior Software Engineer & UI/UX Designer)
- * Version: Final & Refactored
- */
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Element Selectors & Initial State ---
@@ -12,9 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const messagesArea = document.querySelector('.messages-area');
     const replyForm = document.getElementById('replyForm');
     const replyMessageInput = document.getElementById('replyMessage');
+    const replyButton = document.getElementById('replyButton');
     const chatHeaderContent = document.getElementById('chat-header-content');
     const chatHeaderAvatar = document.getElementById('chat-header-avatar');
     const chatHeaderName = document.getElementById('chat-header-name');
+    const chatHeaderPhone = document.getElementById('chat-header-phone');
     const attachBtn = document.getElementById('attachBtn');
     const mediaUploadInput = document.getElementById('mediaUpload');
     const settingsForm = document.getElementById('settingsForm');
@@ -27,11 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const replyPreviewContainer = document.getElementById('replyPreview');
     const replyPreviewContent = document.getElementById('replyPreviewContent');
     const closeReplyPreviewBtn = document.getElementById('closeReplyPreview');
-    const chatHeaderPhone = document.getElementById('chat-header-phone');
     const searchIcon = document.getElementById('searchIcon');
     const messageSearchContainer = document.getElementById('messageSearchContainer');
     const messageSearchInput = document.getElementById('messageSearchInput');
     const closeSearchBtn = document.getElementById('closeSearchBtn');
+    const searchNextBtn = document.getElementById('searchNextBtn');
+    const searchPrevBtn = document.getElementById('searchPrevBtn');
+    const searchMatchCounter = document.getElementById('searchMatchCounter');
     const notesBtn = document.getElementById('notesBtn');
     const customerNotesTextarea = document.getElementById('customerNotes');
     const saveNotesBtn = document.getElementById('saveNotesBtn');
@@ -47,44 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let messageToReplyToId = null;
     let searchMatches = [];
     let currentMatchIndex = -1;
+    let currentPage = 1;
+    let isLoadingMessages = false;
+    let allMessagesLoaded = false;
 
     // --- 2. Helper Functions ---
-
-        async function loadAnalytics() {
-            try {
-                const response = await fetch('/api/analytics/summary');
-                const data = await response.json();
-
-                document.getElementById('totalConversationsStat').textContent = data.totalConversations;
-                document.getElementById('totalMessagesStat').textContent = data.totalMessages;
-                document.getElementById('messageBreakdownStat').textContent = `${data.incomingMessages} واردة / ${data.outgoingMessages} صادرة`;
-                document.getElementById('newConversationsStat').textContent = data.newConversationsLast7Days;
-            } catch (error) {
-                console.error('Failed to load analytics:', error);
-            }
-        }
-
-        async function loadEmployees() {
-        if (!employeesTableBody) return;
-        try {
-            const response = await fetch('/api/employees');
-            const employees = await response.json();
-            employeesTableBody.innerHTML = '';
-            employees.forEach(emp => {
-                const row = `
-                    <tr>
-                        <td>${emp.name}</td>
-                        <td>${emp.email}</td>
-                        <td><button class="btn btn-sm btn-outline-danger" data-id="${emp._id}">حذف</button></td>
-                    </tr>
-                `;
-                employeesTableBody.insertAdjacentHTML('beforeend', row);
-            });
-        } catch (error) {
-            console.error('Failed to load employees:', error);
-        }
-    }
-
     function formatRelativeTime(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -92,15 +56,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const seconds = Math.round((now - date) / 1000);
         const minutes = Math.round(seconds / 60);
         const hours = Math.round(minutes / 60);
-        const days = Math.round(hours / 24);
-
         if (seconds < 60) return `الآن`;
         if (minutes < 60) return `منذ ${minutes} دقيقة`;
         if (hours < 24) return `منذ ${hours} ساعة`;
-        return new Date(dateString).toLocaleDateString('ar-EG');
+        return new Date(dateString).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
     }
     
     function generateHSLColor(str) {
+        if (!str) return 'hsl(210, 50%, 60%)';
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -109,7 +72,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return `hsl(${h}, 50%, 60%)`;
     }
 
-    function appendMessage(msg) {
+    function isUserNearBottom() {
+        const threshold = 150;
+        return messagesArea.scrollTop + messagesArea.clientHeight >= messagesArea.scrollHeight - threshold;
+    }
+
+    function scrollToBottom() {
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+
+    // --- 3. Core Application Logic ---
+    function appendMessage(msg, isPrepending) {
+        if (document.querySelector(`.message-bubble[data-message-id="${msg._id}"]`)) return;
+
         const placeholder = messagesArea.querySelector('.placeholder');
         if (placeholder) placeholder.remove();
 
@@ -117,153 +92,206 @@ document.addEventListener('DOMContentLoaded', () => {
         msgBubble.className = 'message-bubble';
         msgBubble.dataset.messageId = msg._id;
         
+        let replyHTML = '';
         if (msg.repliedToMessageContent) {
-            const quotedReply = document.createElement('div');
-            quotedReply.className = 'quoted-reply';
-            quotedReply.dataset.replyId = msg.repliedToMessageId;
-            quotedReply.innerHTML = `
-                <strong>${msg.repliedToMessageSender}</strong>
-                <p class="mb-0 text-truncate">${msg.repliedToMessageContent}</p>
-            `;
-            msgBubble.appendChild(quotedReply);
+            replyHTML = `<div class="quoted-reply" data-reply-id="${msg.repliedToMessageId}"><strong>${msg.repliedToMessageSender}</strong><p class="mb-0 text-truncate">${msg.repliedToMessageContent}</p></div>`;
         }
-
-        const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'message-content';
-
-    switch (msg.messageType) {
-        case 'image':
-        case 'sticker': // Treat stickers as images
-            contentWrapper.innerHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" style="max-width: 250px; border-radius: 8px; cursor: pointer;"></a>`;
-            break;
-        case 'video':
-            contentWrapper.innerHTML = `<video controls src="${msg.content}" style="max-width: 300px; border-radius: 8px;"></video>`;
-            break;
-        case 'audio':
-            contentWrapper.innerHTML = `<audio controls src="${msg.content}" style="width: 250px;"></audio>`;
-            break;
-        case 'document':
-        case 'raw':
-            contentWrapper.innerHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename}</span></a>`;
-            break;
-        default: // text
-            contentWrapper.textContent = msg.content;
-            break;
-    }
-        
-        const timestamp = new Date(msg.createdAt);
-        const formattedTime = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-        const timestampEl = document.createElement('div');
-        timestampEl.className = 'timestamp';
-        timestampEl.textContent = formattedTime;
-
+        let contentHTML = '';
+        switch (msg.messageType) {
+            case 'image': case 'sticker':
+                contentHTML = `<a href="${msg.content}" target="_blank"><img src="${msg.content}" class="message-media-img"></a>`; break;
+            case 'video':
+                contentHTML = `<div class="message-media-video-wrapper"><video controls src="${msg.content}" class="message-media-video"></video></div>`; break;
+            case 'audio':
+                contentHTML = `<audio controls src="${msg.content}" class="message-media-audio"></audio>`; break;
+            case 'document': case 'raw':
+                contentHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename || 'Download File'}</span></a>`; break;
+            default:
+                contentHTML = document.createTextNode(msg.content).textContent; break;
+        }
+        const formattedTime = new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        let statusTicksHTML = '';
         if (msg.sender === 'agent') {
-            const metaContainer = document.createElement('div');
-            metaContainer.className = 'message-meta-container';
-            metaContainer.innerHTML = `<span class="status-ticks" data-status="${msg.status}">✓</span>`;
-            timestampEl.appendChild(metaContainer);
+            statusTicksHTML = `<span class="status-ticks" data-status="${msg.status}">✓</span>`;
         }
-
-        msgBubble.appendChild(contentWrapper);
-        msgBubble.appendChild(timestampEl);
+        msgBubble.innerHTML = `${replyHTML}<div class="message-content">${contentHTML}</div><div class="timestamp">${formattedTime}${statusTicksHTML}</div>`;
         msgBubble.classList.add(msg.sender === 'customer' ? 'customer-message' : 'agent-message');
-        messagesArea.prepend(msgBubble);
+        
+        if (isPrepending) {
+            // Adds the new message to the TOP of the chat area
+            messagesArea.prepend(msgBubble);
+        } else {
+            // Adds the new message to the BOTTOM of the chat area
+            messagesArea.appendChild(msgBubble);
+        }
     }
 
-    async function loadMessages(conversationId, convElement) {
-        if (activeConversationId === conversationId) return;
+    async function loadMessages(conversationId) {
+        if (isLoadingMessages || allMessagesLoaded) return;
+        isLoadingMessages = true;
+
+        const loadMoreContainer = messagesArea.querySelector('.load-more-container');
+        const spinner = loadMoreContainer?.querySelector('.spinner-border');
+        if (spinner) spinner.style.display = 'block';
+
+        try {
+            const response = await fetch(`/api/conversations/${conversationId}/messages?page=${currentPage}`);
+            if (!response.ok) throw new Error("Failed to fetch messages");
+            
+            const messages = await response.json();
+
+            if (conversationId !== activeConversationId) {
+                console.log("Stale messages loaded. Discarding.");
+                return; 
+            }
+
+            
+            if (messages.length > 0) {
+                const previousScrollHeight = messagesArea.scrollHeight;
+                const placeholder = messagesArea.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+
+                // --- هذا هو المنطق الجديد والمهم ---
+                if (currentPage === 1) {
+                    // للصفحة الأولى: اعكس الترتيب وأضف الرسائل في الأسفل (append)
+                    messages.reverse().forEach(msg => appendMessage(msg, false)); // "false" = append
+                } else {
+                    // للصفحات القديمة: اعكس الترتيب وأضف الرسائل في الأعلى (prepend)
+                    messages.reverse().forEach(msg => appendMessage(msg, true)); // "true" = prepend
+                    
+                    // حافظ على مكان التمرير فقط عند تحميل الرسائل القديمة
+                    messagesArea.scrollTop = messagesArea.scrollHeight - previousScrollHeight;
+                }
+                
+                currentPage++;
+            } else {
+                allMessagesLoaded = true;
+                if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+            }
+        } catch (error) {
+            console.error("Error loading messages:", error);
+            if (loadMoreContainer) loadMoreContainer.innerHTML = `<span class="text-danger">Failed to load</span>`;
+        } finally {
+            isLoadingMessages = false;
+            if (spinner) spinner.style.display = 'none';
+        }
+    }
+
+    async function initializeConversation(conversationId, convElement) {
         activeConversationId = conversationId;
+        currentPage = 1;
+        isLoadingMessages = false;
+        allMessagesLoaded = false;
+        messageToReplyToId = null;
+
         document.querySelectorAll('.list-group-item').forEach(el => el.classList.remove('active'));
         convElement.classList.add('active');
-
+        
         const customerName = convElement.dataset.customerName;
         const customerPhone = convElement.dataset.customerPhone;
-        const firstLetter = customerName.charAt(0).toUpperCase();
+        const firstLetter = customerName ? customerName.charAt(0).toUpperCase() : '#';
         
-        chatHeaderAvatar.textContent = firstLetter;
-        chatHeaderAvatar.style.backgroundColor = generateHSLColor(customerName);
-        chatHeaderName.textContent = customerName;
+        if(chatHeaderAvatar) chatHeaderAvatar.textContent = firstLetter;
+        if(chatHeaderAvatar) chatHeaderAvatar.style.backgroundColor = generateHSLColor(customerName);
+        if(chatHeaderName) chatHeaderName.textContent = customerName;
         if(chatHeaderPhone) chatHeaderPhone.textContent = customerPhone;
-        chatHeaderContent.style.visibility = 'visible';
-
-        messagesArea.innerHTML = '<p class="text-center text-muted">Loading...</p>';
-        try {
-            const messages = await fetch(`/api/conversations/${conversationId}/messages`).then(res => res.json());
-            messagesArea.innerHTML = '';
-            if (messages.length === 0) {
-                messagesArea.innerHTML = '<div class="placeholder"><h4>No messages in this conversation.</h4></div>';
-            } else {
-                messages.forEach(msg => appendMessage(msg));
-            }
-            replyForm.classList.remove('d-none');
-        } catch (error) {
-            messagesArea.innerHTML = '<div class="placeholder"><h4>Failed to load messages.</h4></div>';
-        }
-        try {
-            const notesResponse = await fetch(`/api/conversations/${conversationId}/notes`);
-            const data = await notesResponse.json();
-            customerNotesTextarea.value = data.notes || '';
-        } catch (error) {
-            console.error("Failed to load notes:", error);
-        }
+        if(chatHeaderContent) chatHeaderContent.style.visibility = 'visible';
+        
+        messagesArea.innerHTML = `
+            <div class="load-more-container text-center py-3">
+                <div class="spinner-border spinner-border-sm text-secondary" style="display: none;"></div>
+            </div>
+            <div class="placeholder d-flex justify-content-center align-items-center h-100"><h4>Loading messages...</h4></div>
+        `;
+        
+        await loadMessages(conversationId);
+        
+        scrollToBottom();
+        
+        if(replyForm) replyForm.classList.remove('d-none');
     }
 
     async function loadConversations() {
-        if (!convListDiv) return; 
+        // ... (The loadConversations function you fixed and preferred)
+        if (!convListDiv) return;
         try {
-            const conversations = await fetch('/api/conversations').then(res => res.json());
+            const response = await fetch('/api/conversations');
+            if(!response.ok) throw new Error('Failed to fetch conversations');
+            const conversations = await response.json();
             const activeConvId = document.querySelector('.list-group-item.active')?.dataset.id;
             convListDiv.innerHTML = '';
-
+            if (conversations.length === 0) {
+                convListDiv.innerHTML = `<p class="text-center text-secondary p-4">لا توجد محادثات.</p>`;
+                return;
+            }
             conversations.forEach(conv => {
+                const customerName = conv.customerName || conv.customerPhone;
+                const firstLetter = customerName.charAt(0).toUpperCase();
                 const convItem = document.createElement('a');
                 convItem.href = '#';
                 convItem.className = 'list-group-item list-group-item-action';
                 convItem.dataset.id = conv._id;
-                const customerName = conv.customerName || 'Unknown';
                 convItem.dataset.customerName = customerName;
                 convItem.dataset.customerPhone = conv.customerPhone;
-                const firstLetter = customerName.charAt(0).toUpperCase();
-                const relativeTime = formatRelativeTime(conv.lastMessageTimestamp);
-                const lastMessageContent = conv.lastMessage || '...';
                 const unreadBadge = conv.unreadCount > 0 ? `<span class="unread-badge ms-auto">${conv.unreadCount}</span>` : '';
-                const avatarColor = generateHSLColor(customerName);
-                const statusIndicator = `<div class="status-indicator status-${conv.status}" title="الحالة: ${conv.status}"></div>`;
-
-                convItem.innerHTML = `
-                    <div class="avatar me-3" style="background-color: ${avatarColor};">
-                        <span>${firstLetter}</span>
-                    </div>
-                    <div class="conv-item-details">
-                        <div class="d-flex w-100 justify-content-between">
-                            <span class="customer-name text-truncate">${customerName}</span>
-                            <small class="text-nowrap text-muted">${relativeTime}</small>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <p class="last-message text-muted text-truncate mb-0 flex-grow-1">${lastMessageContent}</p>
-                            ${unreadBadge}
-                        </div>
-                    </div>
-                    ${statusIndicator}
-                `;
-                if (conv._id === activeConvId) {
-                    convItem.classList.add('active');
-                }
+                convItem.innerHTML = `<div class="d-flex align-items-center"><div class="status-indicator status-${conv.status}"></div><div class="avatar me-3" style="background-color: ${generateHSLColor(customerName)};"><span>${firstLetter}</span></div><div class="conv-item-details"><div class="d-flex w-100 justify-content-between"><span class="customer-name text-truncate">${customerName}</span><small class="text-nowrap text-muted">${formatRelativeTime(conv.lastMessageTimestamp)}</small></div><div class="d-flex align-items-center"><p class="last-message text-muted text-truncate mb-0 flex-grow-1">${conv.lastMessage || '...'}</p>${unreadBadge}</div></div></div>`;
+                if (conv._id === activeConvId) convItem.classList.add('active');
                 convItem.addEventListener('click', (e) => {
                     e.preventDefault();
-                    loadMessages(conv._id, convItem);
+                    if (activeConversationId !== conv._id) {
+                         initializeConversation(conv._id, convItem);
+                    }
                 });
                 convListDiv.appendChild(convItem);
             });
         } catch (error) {
             console.error("Failed to load conversations:", error);
+            if(convListDiv) convListDiv.innerHTML = `<p class="text-danger p-3">Failed to load conversations.</p>`;
         }
     }
+    // --- 3. EVENT LISTENERS ---
+// في ملف public/js/dashboard.js
+    if (replyForm) {
+        replyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageText = replyMessageInput.value;
+            if (!messageText.trim() || !activeConversationId) return;
 
-    function requestNotificationPermission() {
-        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-            Notification.requestPermission();
-        }
+            const originalButtonContent = replyButton.innerHTML;
+            replyButton.disabled = true;
+            replyButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+            try {
+                const response = await fetch(`/api/conversations/${activeConversationId}/reply`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: messageText, contextMessageId: messageToReplyToId })
+                });
+
+                if (response.ok) {
+                    replyMessageInput.value = '';
+                    if (replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
+                    messageToReplyToId = null;
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to send message: ' + (errorData.message || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('An unexpected error occurred.');
+            } finally {
+                replyButton.disabled = false;
+                replyButton.innerHTML = originalButtonContent;
+                replyMessageInput.focus();
+            }
+        });
+    }
+    
+    if (messagesArea) {
+        messagesArea.addEventListener('scroll', () => {
+            if (messagesArea.scrollTop === 0 && !isLoadingMessages && !allMessagesLoaded && activeConversationId) {
+                loadMessages(activeConversationId);
+            }
+        });
     }
 
     // --- 3. EVENT LISTENERS ---
@@ -300,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const phoneNumberId = document.getElementById('phoneNumberId').value;
             const verifyToken = document.getElementById('verifyToken').value;
             try {
-                const response = await fetch('/api/settings', {
+                const response = await fetch('/api/auth/settings', { // <-- تم إضافة /auth هنا
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ accessToken, phoneNumberId, verifyToken })
@@ -311,49 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 messageEl.textContent = 'Failed to connect to server.';
                 messageEl.style.color = 'red';
-            }
-        });
-    }
-
-    if (replyForm) {
-        replyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const messageText = replyMessageInput.value;
-            if (!messageText.trim() || !activeConversationId) return;
-
-            const replyButton = document.getElementById('replyButton');
-            const originalButtonContent = replyButton.innerHTML; // حفظ شكل الزر الأصلي
-
-            // --- هذا هو الجزء الجديد: تفعيل مؤشر التحميل ---
-            // تعطيل الزر ووضع مؤشر التحميل
-            replyButton.disabled = true;
-            replyButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>`;
-            // ---------------------------------------------
-
-            try {
-                const response = await fetch(`/api/conversations/${activeConversationId}/reply`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: messageText, contextMessageId: messageToReplyToId })
-                });
-                if (response.ok) {
-                    // Let the 'new_message' socket event handle appending the message
-                    replyMessageInput.value = '';
-                    if (replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
-                    messageToReplyToId = null;
-                } else {
-                    const data = await response.json();
-                    alert('Failed to send reply: ' + (data.message || 'Unknown error'));
-                }
-            } catch (error) {
-                alert('An unexpected error occurred.');
-            } finally {
-                // --- الجزء الجديد: إعادة الزر إلى حالته الطبيعية ---
-                // سواء نجحت العملية أو فشلت، قم بإعادة الزر
-                replyButton.disabled = false;
-                replyButton.innerHTML = originalButtonContent;
-                replyMessageInput.focus();
-                // ---------------------------------------------
             }
         });
     }
@@ -643,6 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
     // NEW: Listener for Deleting Employees
     if (employeesTableBody) {
         employeesTableBody.addEventListener('click', async (e) => {
@@ -658,31 +644,59 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
-        loadConversations();
-        notificationSound.play().catch(e => console.error("Error playing sound:", e));
+        // أولاً، قم بتحديث قائمة المحادثات لتعكس الرسالة الأخيرة والوقت
+        loadConversations(); 
+        
+        // ثانيًا، تحقق مما إذا كانت الرسالة تخص المحادثة النشطة
         if (message.conversationId === activeConversationId) {
-            appendMessage(message);
+            // إذا كانت كذلك، قم بتشغيل الصوت وعرض الرسالة
+            notificationSound.play().catch(e => console.error("Error playing sound:", e));
+            
+            const wasNearBottom = isUserNearBottom();
+            appendMessage(message, false);
+            if (wasNearBottom) {
+                scrollToBottom();
+            }
+
+            // --- هذا هو الجزء الجديد والمهم ---
+            // أرسل طلبًا فوريًا للخادم لتصفير العداد
+            fetch(`/api/conversations/${activeConversationId}/mark-as-read`, {
+                method: 'POST'
+            }).catch(err => console.error("Failed to mark as read:", err));
+            // ------------------------------------
+
+        } else {
+            // إذا كانت المحادثة غير نشطة، فقط قم بتشغيل الصوت
+            notificationSound.play().catch(e => console.error("Error playing sound:", e));
         }
     });
-
+    
     socket.on('message_status_update', (data) => {
         const messageBubble = document.querySelector(`.message-bubble[data-message-id="${data.messageId}"]`);
         if (messageBubble) {
             const statusTicks = messageBubble.querySelector('.status-ticks');
-            if (statusTicks) {
-                statusTicks.dataset.status = data.status;
-            }
+            if (statusTicks) statusTicks.dataset.status = data.status;
         }
     });
 
-    socket.on('conversation_updated', () => {
+    socket.on('conversation_updated', (updatedConv) => {
+        // ببساطة، أعد تحميل قائمة المحادثات بالكامل لضمان تحديث كل شيء
+        // (الرسالة الأخيرة، الوقت، الحالة، وعدد الرسائل غير المقروءة)
+        console.log('Conversation updated event received, reloading conversation list...');
         loadConversations();
     });
 
-    // --- 5. INITIAL PAGE LOAD ---
-    if (document.getElementById('conv-list')) {
-        loadConversations();
-        loadAnalytics();
-        requestNotificationPermission();
+    // --- 7. Initial Page Load ---
+    function init() {
+        if (document.getElementById('conv-list')) {
+            loadConversations();
+            // loadAnalytics(); // Assuming you have this function
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                // You might want to ask for permission on a user action, not on page load
+                // Notification.requestPermission();
+            }
+        }
     }
+    
+    init();
 });

@@ -74,7 +74,7 @@ module.exports = function(io) {
                     const mediaId = messageData[messageType].id;
                     const originalFilename = messageData[messageType].filename || `${mediaId}.webp`; // Stickers are usually .webp
                     
-                    const mediaInfoResponse = await axios.get(`https://graph.facebook.com/v19.0/${mediaId}`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
+                    const mediaInfoResponse = await axios.get(`https://graph.facebook.com/${process.env.META_API_VERSION}/${mediaId}`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
                     const tempMediaUrl = mediaInfoResponse.data.url;
                     const buffer = (await axios.get(tempMediaUrl, { headers: { 'Authorization': `Bearer ${accessToken}` }, responseType: 'arraybuffer' })).data;
                     
@@ -107,6 +107,7 @@ module.exports = function(io) {
                 if (newMessage) {
                     await newMessage.save();
                     conversation.lastMessage = newMessage.messageType === 'text' ? newMessage.content : (newMessage.filename || newMessage.messageType.charAt(0).toUpperCase() + newMessage.messageType.slice(1));
+                    conversation.lastMessageTimestamp = newMessage.createdAt;
                     conversation.lastMessageTimestamp = newMessage.createdAt;
                     conversation.unreadCount = (conversation.unreadCount || 0) + 1;
                     await conversation.save();

@@ -1,73 +1,11 @@
 /* public/css/analytics.css */
-
-/* --- Root Variables for a Professional Dark Theme --- */
-:root {
-    --analytics-bg: #1a1d24; /* Deep, dark background */
-    --analytics-panel-bg: #232733; /* Slightly lighter for panels and cards */
-    --analytics-border-color: #3a3f51; /* Subtle border color */
-    --analytics-text-primary: #e0e0e0; /* Primary text color (off-white) */
-    --analytics-text-secondary: #9a9fae; /* Muted text for subtitles and secondary info */
-    --analytics-primary-accent: #4a72ff; /* A vibrant accent color for highlights */
-    --analytics-card-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    --analytics-card-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* --- General Body and Layout Overrides --- */
-/* Apply dark background to the entire page context when on analytics */
-body {
-    background-color: var(--analytics-bg);
-    color: var(--analytics-text-primary);
-}
-
-/* --- Analytics Panel Styling --- */
-.analytics-panel {
-    background-color: var(--analytics-bg);
-    display: flex;
-    flex-direction: column;
-    height: 100vh; /* Ensure it fills the viewport height */
-}
-
-.analytics-panel .panel-header {
-    background-color: var(--analytics-panel-bg);
-    border-bottom: 1px solid var(--analytics-border-color);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    color: var(--analytics-text-primary);
-    padding: 1rem 1.5rem;
-    flex-shrink: 0; /* Prevent header from shrinking */
-}
+/* هذا الملف يحتوي فقط على التنسيقات الخاصة بصفحة التحليلات */
 
 .analytics-panel .panel-header h4 {
     font-weight: 600;
 }
 
-/* Search input styling for customers page header */
-.analytics-panel .panel-header .search-container .form-control {
-    background-color: var(--analytics-bg);
-    color: var(--analytics-text-primary);
-    border-color: var(--analytics-border-color);
-    box-shadow: none;
-}
-
-.analytics-panel .panel-header .search-container .form-control::placeholder {
-    color: var(--analytics-text-secondary);
-}
-
-.analytics-panel .panel-header .search-container .form-control:focus {
-    border-color: var(--analytics-primary-accent);
-}
-
-.analytics-panel .p-4 {
-    flex-grow: 1;
-    overflow-y: auto; /* Allow content to scroll */
-}
-
-/* --- Loading and Content Animation --- */
-#analytics-loading .spinner-border {
-    color: var(--analytics-primary-accent) !important;
-}
-
+/* Adds a subtle animation to the content appearing */
 #analytics-content {
     animation: fadeIn 0.5s ease-in-out;
 }
@@ -83,46 +21,10 @@ body {
     }
 }
 
-/* --- Stat Cards Styling --- */
-.analytics-panel .card {
-    background-color: var(--analytics-panel-bg);
-    border: 1px solid var(--analytics-border-color);
-    border-radius: 12px; /* Softer corners */
-    box-shadow: var(--analytics-card-shadow);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    color: var(--analytics-text-primary);
-}
-
-.analytics-panel .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--analytics-card-hover-shadow);
-}
-
-.analytics-panel .card .card-body {
-    padding: 1.5rem;
-}
-
-.analytics-panel .card .card-title {
-    color: var(--analytics-text-secondary);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 0.75rem;
-}
-
-.analytics-panel .card .card-text {
-    color: var(--analytics-text-primary);
-    font-weight: 700;
-}
-
-.analytics-panel .card #messageBreakdownStat {
-    color: var(--analytics-text-secondary);
-    font-size: 0.85rem;
-}
-
-/* --- Chart Styling --- */
-.analytics-panel .card-header {
+/* Styles for the chart card */
+.card-chart .card-header {
     background-color: transparent;
-    border-bottom: 1px solid var(--analytics-border-color);
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
     padding: 1rem 1.5rem;
 }

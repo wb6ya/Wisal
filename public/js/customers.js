@@ -48,7 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="customer-info">
                                     <div class="avatar" style="background-color: ${avatarColor};">${firstLetter}</div>
                                     <div>
-                                        <div class="customer-name">${customerName}</div>
+                                        <div class="customer-name">
+                                            <a href="/dashboard?conversationId=${customer.conversationId}" class="text-decoration-none text-white">${customerName}</a>
+                                        </div>
                                         <div class="customer-phone">${customer.phone}</div>
                                     </div>
                                 </div>
@@ -56,6 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${formatRelativeDate(customer.lastInteraction)}</td>
                             <td>${customer.totalMessages}</td>
                             <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
+                            <td>
+                                <a href="/dashboard?conversationId=${customer.conversationId}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-chat-left-text-fill me-1"></i> فتح المحادثة
+                                </a>
+                            </td>
                         </tr>
                     `;
                     customersTableBody.insertAdjacentHTML('beforeend', row);

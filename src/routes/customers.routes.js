@@ -18,15 +18,15 @@ router.get('/', isAuthenticated, async (req, res) => {
         // A more advanced aggregation pipeline to gather rich customer data
         const customers = await Conversation.aggregate([
             { $match: { companyId: companyId } },
-            { $sort: { createdAt: 1 } }, // Sort by creation to find the first interaction
+            { $sort: { updatedAt: -1 } }, // Sort by most recent interaction to get the latest data first
             {
                 $group: {
                     _id: "$customerPhone", // Group by unique phone number
-                    name: { $last: "$customerName" }, // Get the most recent name
-                    status: { $last: "$status" }, // Get the status of the most recent conversation
-                    firstInteraction: { $first: "$createdAt" }, // Get the date of the first conversation
-                    lastInteraction: { $last: "$updatedAt" }, // Get the last interaction time
-                    conversationIds: { $push: "$_id" } // Collect all conversation IDs for this customer
+                    name: { $first: "$customerName" }, // Get the most recent name
+                    status: { $first: "$status" }, // Get the status of the most recent conversation
+                    lastInteraction: { $first: "$updatedAt" }, // Get the last interaction time
+                    conversationIds: { $push: "$_id" }, // Collect all conversation IDs for this customer
+                    conversationId: { $first: "$_id" } // Get the ID of the most recent conversation
                 }
             },
             {
@@ -43,9 +43,9 @@ router.get('/', isAuthenticated, async (req, res) => {
                     phone: "$_id",
                     name: "$name",
                     status: "$status",
-                    firstInteraction: "$firstInteraction",
                     lastInteraction: "$lastInteraction",
-                    totalMessages: { $size: "$messages" } // Count the total number of messages
+                    totalMessages: { $size: "$messages" }, // Count the total number of messages
+                    conversationId: "$conversationId"
                 }
             },
             { $sort: { lastInteraction: -1 } } // Sort by most recently active customer

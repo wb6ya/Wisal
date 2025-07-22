@@ -60,10 +60,11 @@
                     </div>
             </header>
             <div class="messages-area">
+                <div class="load-more-container text-center py-3" style="display: none;">
+                    <button id="loadMoreBtn" class="btn btn-sm btn-outline-secondary">تحميل الرسائل السابقة</button>
+                </div>
                 <div class="placeholder">
-                    <i class="bi bi-whatsapp placeholder-icon"></i>
-                    <h4>حدد محادثة لبدء المراسلة</h4>
-                    <p class="text-muted">سيتم عرض رسائلك هنا.</p>
+                    <h4>اختر محادثة لعرض الرسائل</h4>
                 </div>
             </div>
             <footer class="reply-area">
@@ -93,36 +94,41 @@
                     <h5 class="modal-title" id="settingsModalLabel">إعدادات ربط واتساب</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <form id="settingsForm">
-                        <div class="mb-3">
-                            <label for="accessToken" class="form-label">Access Token</label>
-                            <input type="password" class="form-control" id="accessToken" value="<%= company.whatsapp?.accessToken || '' %>" required autocomplete="off">
-                        </div>
-                        <div class="mb-3">
-                            <label for="phoneNumberId" class="form-label">Phone Number ID</label>
-                            <input type="text" class="form-control" id="phoneNumberId" value="<%= company.whatsapp?.phoneNumberId || '' %>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="verifyToken" class="form-label">Verify Token</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="verifyToken" value="<%= company.whatsapp?.verifyToken || '' %>" required>
-                                <button class="btn btn-outline-secondary" type="button" id="generateTokenBtn" title="Generate a new random token">إنشاء</button>
+                    <div class="modal-body p-4">
+                        <form id="settingsForm">
+                            <div class="mb-3">
+                                <label for="accessToken" class="form-label">Access Token</label>
+                                <input type="password" class="form-control" id="accessToken" value="<%= company.whatsapp?.accessToken || '' %>" required autocomplete="new-password">
+                                <div class="form-text">هذا هو مفتاح الوصول المؤقت من تطبيق Meta الخاص بك.</div>
                             </div>
-                        </div>
-                        <div class="mb-4">
-                            <label for="webhookUrl" class="form-label">Your Webhook URL</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="webhookUrl" value="<%= webhookUrl %>" readonly>
-                                <button class="btn btn-outline-secondary" type="button" id="copyWebhookBtn" title="نسخ"><i class="bi bi-clipboard"></i></button>
+                            <div class="mb-3">
+                                <label for="phoneNumberId" class="form-label">Phone Number ID</label>
+                                <input type="text" class="form-control" id="phoneNumberId" value="<%= company.whatsapp?.phoneNumberId || '' %>" required>
+                                <div class="form-text">معرّف رقم الهاتف الذي سترسل منه الرسائل.</div>
                             </div>
-                            <div class="form-text">استخدم هذا الرابط في إعدادات Webhook داخل تطبيق Meta الخاص بك.</div>
-                        </div>
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
-                        </div>
-                    </form>
-                </div>
+                            <div class="mb-3">
+                                <label for="verifyToken" class="form-label">Verify Token</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="verifyToken" value="<%= company.whatsapp?.verifyToken || '' %>" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="generateTokenBtn" title="Generate a new random token">إنشاء</button>
+                                </div>
+                                <div class="form-text">كلمة سر من اختيارك للتحقق من الـ Webhook. اضغط "إنشاء" لعمل واحدة عشوائية.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="webhookUrl" class="form-label">Your Webhook URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light" id="webhookUrl" value="<%= webhookUrl %>" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" id="copyWebhookBtn" title="نسخ"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                                <div class="form-text">استخدم هذا الرابط في إعدادات Webhook داخل تطبيق Meta الخاص بك.</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <div id="formMessage" class="me-auto text-success"></div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="submit" form="settingsForm" class="btn btn-primary">حفظ الإعدادات</button>
+                    </div>
             </div>
         </div>
     </div>
@@ -216,10 +222,10 @@
                     <h5 class="modal-title">إدارة الموظفين</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <h6>إضافة موظف جديد</h6>
+                <div class="modal-body p-4">
+                    <div class="row g-5">
+                        <div class="col-md-5 border-end">
+                            <h6 class="mb-3">إضافة موظف جديد</h6>
                             <form id="addEmployeeForm">
                                 <div class="mb-3">
                                     <label for="employeeName" class="form-label">اسم الموظف</label>
@@ -233,22 +239,24 @@
                                     <label for="employeePassword" class="form-label">كلمة المرور</label>
                                     <input type="password" class="form-control" id="employeePassword" required>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100">إضافة موظف</button>
+                                <button type="submit" class="btn btn-primary w-100 mt-2">إضافة موظف</button>
                             </form>
                         </div>
                         <div class="col-md-7">
-                            <h6>الموظفون الحاليون</h6>
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>الاسم</th>
-                                        <th>البريد الإلكتروني</th>
-                                        <th>إجراء</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="employeesTableBody">
-                                    </tbody>
-                            </table>
+                            <h6 class="mb-3">الموظفون الحاليون</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>الاسم</th>
+                                            <th>البريد الإلكتروني</th>
+                                            <th class="text-end">إجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeesTableBody">
+                                        </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

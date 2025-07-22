@@ -16,7 +16,8 @@ const templatesRouter = require('./templates.routes');
 const { isAuthenticated } = require('../middleware/auth');
 const analyticsRouter = require('./analytics.routes');
 const employeesRouter = require('./employees.routes');
-const customersRouter = require('./customers.routes'); 
+const customersRouter = require('./customers.routes');
+const authRouter = require('./auth.routes'); 
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -27,73 +28,7 @@ module.exports = function(io) {
     router.use('/employees', employeesRouter);
     router.use('/analytics', analyticsRouter);
     router.use('/customers', customersRouter); 
-
-    // User & Company Management
-    router.post('/register', async (req, res) => {
-        try {
-            const { companyName, email, password } = req.body;
-            if (!companyName || !email || !password) return res.status(400).json({ message: 'Please fill all fields' });
-            const existingCompany = await Company.findOne({ email });
-            if (existingCompany) return res.status(400).json({ message: 'Email already in use' });
-            const company = new Company({ companyName, email, password });
-            await company.save();
-            res.status(201).json({ message: 'Company registered successfully!' });
-        } catch (error) {
-            res.status(500).json({ message: 'Server error during registration' });
-        }
-    });
-
-    router.post('/login', async (req, res) => {
-        try {
-            const { email, password } = req.body;
-            const employee = await Employee.findOne({ email });
-            if (employee) {
-                const isMatch = await bcrypt.compare(password, employee.password);
-                if (isMatch) {
-                    req.session.userId = employee._id;
-                    req.session.companyId = employee.companyId;
-                    req.session.role = employee.role;
-                    return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
-                }
-            }
-            const company = await Company.findOne({ email });
-            if (company) {
-                const isMatch = await bcrypt.compare(password, company.password);
-                if (isMatch) {
-                    req.session.userId = company._id;
-                    req.session.companyId = company._id;
-                    req.session.role = 'admin';
-                    return res.status(200).json({ message: 'Login successful!', redirectUrl: '/dashboard' });
-                }
-            }
-            return res.status(400).json({ message: 'Invalid email or password' });
-        } catch (error) {
-            console.error("Login error:", error);
-            res.status(500).json({ message: 'Server error during login' });
-        }
-    });
-
-    router.get('/logout', (req, res) => {
-        req.session.destroy((err) => {
-            if (err) {
-                return res.status(500).json({ message: 'Could not log out, please try again.' });
-            }
-            res.redirect('/');
-        });
-    });
-
-    router.post('/settings', isAuthenticated, async (req, res) => {
-        try {
-            const { accessToken, phoneNumberId, verifyToken } = req.body;
-            if (!accessToken || !phoneNumberId || !verifyToken) return res.status(400).json({ message: 'Please fill all fields' });
-            await Company.findByIdAndUpdate(req.session.companyId, {
-                $set: { 'whatsapp.accessToken': accessToken, 'whatsapp.phoneNumberId': phoneNumberId, 'whatsapp.verifyToken': verifyToken }
-            });
-            res.status(200).json({ message: 'Settings saved successfully!' });
-        } catch (error) {
-            res.status(500).json({ message: 'Server error while saving settings' });
-        }
-    });
+    router.use('/auth', authRouter);
 
 
     router.post('/conversations/:id/media', isAuthenticated, upload.single('file'), async (req, res) => {
@@ -131,7 +66,7 @@ module.exports = function(io) {
             };
 
             const uploadResponse = await axios.post(
-                `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/media`,
+                `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/media`,
                 form,
                 { headers: uploadHeaders }
             );
@@ -158,7 +93,7 @@ module.exports = function(io) {
             };
 
             const sendHeaders = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const metaResponse = await axios.post(`https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
+            const metaResponse = await axios.post(`https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
             const metaMessageId = metaResponse.data.messages[0].id;
 
             // Step 3: Upload to Cloudinary for persistent storage
@@ -274,7 +209,7 @@ module.exports = function(io) {
                 return res.status(401).json({ message: "Invalid Access Token." });
             }
             
-            const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
+            const whatsappApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`;
             
             const apiRequestData = {
                 messaging_product: "whatsapp",
@@ -326,7 +261,7 @@ module.exports = function(io) {
             // --- هذا هو الجزء الجديد: إرسال رسالة القالب ---
             const company = await Company.findById(req.session.companyId);
             if (company && company.whatsapp.accessToken) {
-                const whatsappApiUrl = `https://graph.facebook.com/v19.0/${company.whatsapp.phoneNumberId}/messages`;
+                const whatsappApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`;
                 
                 const apiRequestData = {
                     messaging_product: "whatsapp",
