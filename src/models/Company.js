@@ -9,6 +9,22 @@ const CompanySchema = new mongoose.Schema({
         accessToken: { type: String },
         phoneNumberId: { type: String },
         verifyToken: { type: String },
+    },
+    welcomeMessage: {
+        enabled: { type: Boolean, default: false },
+        type: { 
+            type: String, 
+            enum: ['text', 'interactive'], 
+            default: 'text' 
+        },
+        text: { 
+            type: String, 
+            trim: true,
+            default: 'Welcome! How can we help you today?'
+        },
+        buttons: [
+            { type: String, trim: true }
+        ]
     }
 }, { timestamps: true });
 

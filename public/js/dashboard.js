@@ -36,6 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const employeesModal = document.getElementById('employeesModal');
     const addEmployeeForm = document.getElementById('addEmployeeForm');
     const employeesTableBody = document.getElementById('employeesTableBody');
+    const welcomeEnabled = document.getElementById('welcomeEnabled');
+    const welcomeTypeText = document.getElementById('welcomeTypeText');
+    const welcomeTypeInteractive = document.getElementById('welcomeTypeInteractive');
+    const welcomeText = document.getElementById('welcomeText');
+    const welcomeButtonsContainer = document.getElementById('welcomeButtonsContainer');
+    const welcomeButton1 = document.getElementById('welcomeButton1');
+    const welcomeButton2 = document.getElementById('welcomeButton2');
+    const welcomeButton3 = document.getElementById('welcomeButton3');
 
     // --- Socket.IO & State Initialization ---
     const socket = io();
@@ -324,14 +332,35 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const messageEl = document.getElementById('formMessage');
             messageEl.textContent = 'Saving...';
+
+            // جمع بيانات واتساب القديمة
             const accessToken = document.getElementById('accessToken').value;
             const phoneNumberId = document.getElementById('phoneNumberId').value;
             const verifyToken = document.getElementById('verifyToken').value;
+
+            // --- جمع بيانات الرسالة الترحيبية الجديدة ---
+            const welcomeMessageSettings = {
+                enabled: welcomeEnabled.checked,
+                type: welcomeTypeInteractive.checked ? 'interactive' : 'text',
+                text: welcomeText.value,
+                buttons: [
+                    welcomeButton1.value,
+                    welcomeButton2.value,
+                    welcomeButton3.value
+                ].filter(btn => btn.trim() !== '') // تجاهل الأزرار الفارغة
+            };
+            // ------------------------------------------
+
             try {
-                const response = await fetch('/api/auth/settings', { // <-- تم إضافة /auth هنا
+                const response = await fetch('/api/auth/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken, phoneNumberId, verifyToken })
+                    body: JSON.stringify({ 
+                        accessToken, 
+                        phoneNumberId, 
+                        verifyToken,
+                        welcomeMessage: welcomeMessageSettings // إرسال الإعدادات الجديدة
+                    })
                 });
                 const data = await response.json();
                 messageEl.textContent = data.message;
@@ -642,6 +671,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    if (welcomeTypeText) {
+        welcomeTypeText.addEventListener('change', () => {
+            if (welcomeTypeText.checked) {
+                welcomeButtonsContainer.classList.add('d-none');
+            }
+        });
+    }
+    if (welcomeTypeInteractive) {
+        welcomeTypeInteractive.addEventListener('change', () => {
+            if (welcomeTypeInteractive.checked) {
+                welcomeButtonsContainer.classList.remove('d-none');
+            }
+        });
+    }
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
         // أولاً، قم بتحديث قائمة المحادثات لتعكس الرسالة الأخيرة والوقت

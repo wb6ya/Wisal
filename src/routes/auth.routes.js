@@ -60,13 +60,26 @@ router.post('/register', async (req, res) => {
 
     router.post('/settings', isAuthenticated, async (req, res) => {
         try {
-            const { accessToken, phoneNumberId, verifyToken } = req.body;
-            if (!accessToken || !phoneNumberId || !verifyToken) return res.status(400).json({ message: 'Please fill all fields' });
+            // استقبل كل البيانات من الطلب
+            const { accessToken, phoneNumberId, verifyToken, welcomeMessage } = req.body;
+
+            if (!accessToken || !phoneNumberId || !verifyToken) {
+                return res.status(400).json({ message: 'Please fill all required API fields' });
+            }
+
+            // قم بتحديث الشركة بكلا القسمين: إعدادات واتساب والرسالة الترحيبية
             await Company.findByIdAndUpdate(req.session.companyId, {
-                $set: { 'whatsapp.accessToken': accessToken, 'whatsapp.phoneNumberId': phoneNumberId, 'whatsapp.verifyToken': verifyToken }
+                $set: { 
+                    'whatsapp.accessToken': accessToken, 
+                    'whatsapp.phoneNumberId': phoneNumberId, 
+                    'whatsapp.verifyToken': verifyToken,
+                    'welcomeMessage': welcomeMessage // تحديث كائن الرسالة الترحيبية بالكامل
+                }
             });
+
             res.status(200).json({ message: 'Settings saved successfully!' });
         } catch (error) {
+            console.error("Error saving settings:", error);
             res.status(500).json({ message: 'Server error while saving settings' });
         }
     });

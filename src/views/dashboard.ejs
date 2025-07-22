@@ -96,6 +96,53 @@
                 </div>
                     <div class="modal-body p-4">
                         <form id="settingsForm">
+                            <hr class="my-4">
+
+                            <h6 class="mb-3">إعدادات الرسالة الترحيبية</h6>
+
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" role="switch" id="welcomeEnabled" <%= company.welcomeMessage?.enabled ? 'checked' : '' %>>
+                                <label class="form-check-label" for="welcomeEnabled">تفعيل رسالة الترحيب للعملاء الجدد</label>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">نوع الرسالة</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="welcomeType" id="welcomeTypeText" value="text" <%= company.welcomeMessage?.type === 'text' ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="welcomeTypeText">نص فقط</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="welcomeType" id="welcomeTypeInteractive" value="interactive" <%= company.welcomeMessage?.type === 'interactive' ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="welcomeTypeInteractive">نص مع أزرار</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="welcomeText" class="form-label">محتوى الرسالة</label>
+                                <textarea class="form-control" id="welcomeText" rows="3"><%= company.welcomeMessage?.text %></textarea>
+                            </div>
+
+                            <div id="welcomeButtonsContainer" class="mb-3 <%= company.welcomeMessage?.type === 'interactive' ? '' : 'd-none' %>">
+                                <label class="form-label">نصوص الأزرار (3 كحد أقصى)</label>
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">1</span>
+                                    <input type="text" class="form-control" id="welcomeButton1" value="<%= company.welcomeMessage?.buttons?.[0] || '' %>" placeholder="نص الزر الأول">
+                                </div>
+                                <div class="input-group mb-2">
+                                    <span class="input-group-text">2</span>
+                                    <input type="text" class="form-control" id="welcomeButton2" value="<%= company.welcomeMessage?.buttons?.[1] || '' %>" placeholder="نص الزر الثاني (اختياري)">
+                                </div>
+                                <div class="input-group">
+                                    <span class="input-group-text">3</span>
+                                    <input type="text" class="form-control" id="welcomeButton3" value="<%= company.welcomeMessage?.buttons?.[2] || '' %>" placeholder="نص الزر الثالث (اختياري)">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
+                            </div>
                             <div class="mb-3">
                                 <label for="accessToken" class="form-label">Access Token</label>
                                 <input type="password" class="form-control" id="accessToken" value="<%= company.whatsapp?.accessToken || '' %>" required autocomplete="new-password">
