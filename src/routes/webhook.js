@@ -52,6 +52,11 @@ module.exports = function(io) {
                 if (!company) return res.sendStatus(404);
                 const accessToken = company.whatsapp.accessToken;
 
+                if (conversation && conversation.status === 'resolved') {
+                    console.log(`Conversation ${conversation._id} was resolved. Customer replied, setting status to 'new'.`);
+                    conversation.status = 'new';
+                }
+
                 let replyContext = { repliedToMessageId: null, repliedToMessageContent: null, repliedToMessageSender: null };
                 if (messageData.context && messageData.context.id) {
                     const originalMessage = await Message.findOne({ wabaMessageId: messageData.context.id });
