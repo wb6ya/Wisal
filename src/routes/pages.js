@@ -39,6 +39,7 @@ async function getSharedPageData(req) {
 }
 
 
+
 /**
  * @route   GET /
  * @desc    Renders the landing/login page or redirects if already logged in.
@@ -50,6 +51,7 @@ router.get('/', (req, res) => {
     }
     res.sendFile(path.join(__dirname, '..', '..', 'public', 'index.html'));
 });
+
 
 /**
  * @route   GET /dashboard
@@ -67,9 +69,10 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
         
         res.render('dashboard', { 
             company: pageData.company, 
-            webhookUrl, 
-            cloudName: process.env.CLOUDINARY_CLOUD_NAME, 
-            user: pageData.user 
+            webhookUrl,  
+            user: pageData.user,
+            page_name: 'dashboard',
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME
         });
     } catch (error) {
         console.error("Dashboard loading error:", error);
@@ -91,7 +94,9 @@ router.get('/analytics', isAuthenticated, async (req, res) => {
 
         res.render('analytics', { 
             company: pageData.company, 
-            user: pageData.user 
+            user: pageData.user,
+            page_name: 'analytics',
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME
         });
     } catch (error) {
         console.error("Analytics page error:", error);
@@ -111,9 +116,38 @@ router.get('/customers', isAuthenticated, async (req, res) => {
             return req.session.destroy(() => res.redirect('/'));
         }
 
-        res.render('customers', { company: pageData.company, user: pageData.user });
+        res.render('customers', {
+            company: pageData.company,
+            user: pageData.user,
+            page_name: 'customers',
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME
+         });
     } catch (error) {
         console.error("Customers page error:", error);
+        res.redirect('/dashboard');
+    }
+});
+
+/**
+ * @route   GET /templates
+ * @desc    Renders the message templates management page.
+ * @access  Private
+ */
+router.get('/templates', isAuthenticated, async (req, res) => {
+    try {
+        const pageData = await getSharedPageData(req);
+        if (!pageData) {
+            return req.session.destroy(() => res.redirect('/'));
+        }
+
+        res.render('templates', { 
+            company: pageData.company, 
+            user: pageData.user,
+            cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+            page_name: 'templates' 
+        });
+    } catch (error) {
+        console.error("Templates page error:", error);
         res.redirect('/dashboard');
     }
 });

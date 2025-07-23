@@ -1,43 +1,49 @@
-// src/models/Template.js
 const mongoose = require('mongoose');
 
+// تعريف مخطط فرعي لشكل الأزرار
+const templateButtonSchema = new mongoose.Schema({
+    title: { // النص الذي يظهر على الزر
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 20 // حد واتساب لنص الزر
+    },
+    nextTemplateId: { // معرّف القالب التالي الذي سيتم إرساله
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Template',
+        default: null // إذا كان فارغًا، تنتهي السلسلة هنا
+    }
+}, { _id: false });
+
+// المخطط الرئيسي للقالب
 const templateSchema = new mongoose.Schema({
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Company',
-        required: true
+        required: true,
+        index: true
     },
-    name: {
+    name: { // اسم داخلي للقالب لتنظيمه (مثال: "قائمة الترحيب الرئيسية")
+        type: String,
+        required: true,
+        trim: true
+    },
+    text: { // محتوى الرسالة
         type: String,
         required: true,
         trim: true,
-        lowercase: true,
+        maxlength: 1024
     },
-    category: {
-        type: String,
-        enum: ['MARKETING', 'UTILITY', 'AUTHENTICATION'],
-        required: true
-    },
-    language: {
+    type: {
         type: String,
         required: true,
-        default: 'ar'
+        enum: ['text', 'interactive'],
+        default: 'text'
     },
-    bodyText: {
-        type: String,
-        required: true
-    },
-    // We will store the status provided by Meta
-    status: {
-        type: String,
-        default: 'PENDING'
-    },
-    metaTemplateId: {
-        type: String // To store the ID from Meta's system
+    buttons: {
+        type: [templateButtonSchema],
+        validate: [val => val.length <= 3, 'A template can have a maximum of 3 buttons.']
     }
 }, { timestamps: true });
-
-// Prevent duplicate template names for the same company
-templateSchema.index({ companyId: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model('Template', templateSchema);

@@ -9,6 +9,7 @@ const { isAuthenticated } = require('../middleware/auth');
 const Employee = require('../models/Employee');
 const Company = require('../models/Company'); // Import the Company model
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 
 // Middleware to check if the logged-in user is an admin
 const isAdmin = (req, res, next) => {
@@ -17,6 +18,20 @@ const isAdmin = (req, res, next) => {
     }
     return res.status(403).json({ message: 'Forbidden: Admins only.' });
 };
+const addEmployeeValidationRules = [
+    body('name')
+        .notEmpty().withMessage('Name is required.')
+        .trim()
+        .escape(), // للحماية من هجمات XSS
+
+    body('email')
+        .isEmail().withMessage('Please provide a valid email address.')
+        .normalizeEmail(), // لتوحيد شكل الإيميل
+
+    body('password')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
+];
+
 
 // GET all employees for the company
 router.get('/', isAuthenticated, isAdmin, async (req, res) => {
@@ -29,7 +44,12 @@ router.get('/', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // POST to create a new employee
-router.post('/', isAuthenticated, isAdmin, async (req, res) => {
+router.post('/', isAuthenticated, isAdmin, addEmployeeValidationRules, async (req, res) => {
+    const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            // إذا كانت هناك أخطاء، أرجعها للمستخدم وتوقف
+            return res.status(400).json({ errors: errors.array() });
+        }
     try {
         const { name, email, password, role } = req.body;
         if (!name || !email || !password) {
@@ -53,6 +73,8 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
         });
 
         await newEmployee.save();
+        const employeeResponse = newEmployee.toObject();
+        delete employeeResponse.password;
         res.status(201).json(newEmployee);
     } catch (error) {
         if (error.code === 11000) {

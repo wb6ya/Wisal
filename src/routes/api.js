@@ -18,6 +18,7 @@ const analyticsRouter = require('./analytics.routes');
 const employeesRouter = require('./employees.routes');
 const customersRouter = require('./customers.routes');
 const authRouter = require('./auth.routes'); 
+const botSettingsRouter = require('./bot-settings.routes');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -29,6 +30,8 @@ module.exports = function(io) {
     router.use('/analytics', analyticsRouter);
     router.use('/customers', customersRouter); 
     router.use('/auth', authRouter);
+    router.use('/templates', isAuthenticated, templatesRouter);
+    router.use('/bot-settings', isAuthenticated, botSettingsRouter);
 
 
     router.post('/conversations/:id/media', isAuthenticated, upload.single('file'), async (req, res) => {

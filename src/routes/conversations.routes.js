@@ -17,17 +17,8 @@ module.exports = function(io) {
     // GET all conversations for the logged-in company
 router.get('/', isAuthenticated, async (req, res) => {
     try {
-        console.log('\n[List Route] Fetching all conversations for company...');
         const conversations = await Conversation.find({ companyId: req.session.companyId }).sort({ lastMessageTimestamp: -1 });
-        
-        // لغرض التشخيص، سنطبع حالة أول محادثتين
-        if (conversations.length > 0) {
-            console.log(`[List Route] --> Unread count for first convo is: ${conversations[0].unreadCount}`);
-        }
-        if (conversations.length > 1) {
-            console.log(`[List Route] --> Unread count for second convo is: ${conversations[1].unreadCount}`);
-        }
-        
+
         res.status(200).json(conversations);
     } catch (error) {
         console.error("Error fetching conversations:", error);
@@ -140,15 +131,25 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
     // POST a media file to a conversation
     router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
         try {
+
+            console.log("--- Send Media Route Hit ---");
+
             const companyId = req.session.companyId;
             const company = await Company.findById(companyId);
             const conversation = await Conversation.findById(req.params.id);
             if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
                 return res.status(400).json({ message: "Missing file, company data, or access token." });
             }
-
+            console.log(`Step 1: File received by Multer successfully. Name: ${req.file.originalname}, Size: ${req.file.size} bytes`);
             const file = req.file;
             const originalFilename = file.originalname;
+
+            if (!company || !conversation || !company.whatsapp.accessToken) {
+                console.error("### ERROR: Company, Conversation or Access Token not found.");
+                return res.status(400).json({ message: "Missing company data or access token." });
+            }
+
+            console.log("Step 2: Starting upload to WhatsApp API...");
 
             const form = new FormData();
             form.append('messaging_product', 'whatsapp');
@@ -164,7 +165,9 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
                 { headers: uploadHeaders }
             );
             const mediaId = uploadResponse.data.id;
+            console.log(`Step 3: WhatsApp upload successful. Media ID: ${mediaId}`);
 
+            console.log("Step 4: Starting upload to Cloudinary...");
             const messageType = file.mimetype.split('/')[0];
             let apiRequestData;
             if (messageType === 'image') {

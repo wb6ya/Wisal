@@ -10,6 +10,9 @@ const path = require('path');
 const http = require('http');
 const { Server } = require("socket.io");
 const cloudinary = require('cloudinary').v2;
+const helmet = require('helmet');
+const ejsLayouts = require('express-ejs-layouts');
+
 
 // =================================================================
 // 2. CONFIGURATIONS
@@ -24,8 +27,10 @@ cloudinary.config({
 // 3. EXPRESS APP & SOCKET.IO INITIALIZATION
 // =================================================================
 const app = express();
+app.use(ejsLayouts);
 const server = http.createServer(app);
 const io = new Server(server);
+
 
 // Import Routers
 const pagesRouter = require('./src/routes/pages');
@@ -37,12 +42,23 @@ const webhookRouter = require('./src/routes/webhook')(io);
 // =================================================================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
+app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+                "script-src": ["'self'", "cdn.jsdelivr.net"],
+                "img-src": ["'self'", "data:", "res.cloudinary.com"],
+                "script-src-attr": ["'unsafe-inline'"],
+            },
+        },
+    }));
 
 const sessionMiddleware = session({
-    secret: 'your_super_secret_key_123',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),

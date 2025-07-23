@@ -1,3 +1,4 @@
+alert("This is the correct dashboard.js file!");
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Element Selectors & Initial State ---
@@ -221,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadConversations() {
         // ... (The loadConversations function you fixed and preferred)
+        console.log("Step 2: loadConversations() function was called.");
         if (!convListDiv) return;
         try {
             const response = await fetch('/api/conversations');
@@ -257,6 +259,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if(convListDiv) convListDiv.innerHTML = `<p class="text-danger p-3">Failed to load conversations.</p>`;
         }
     }
+    async function loadEmployees() {
+    if (!employeesTableBody) return; // تأكد من وجود الجدول قبل المتابعة
+
+    try {
+        const response = await fetch('/api/employees');
+        if (!response.ok) throw new Error('Failed to fetch employees');
+        
+        const employees = await response.json();
+
+        employeesTableBody.innerHTML = ''; // قم بتفريغ الجدول أولاً
+
+        if (employees.length === 0) {
+            employeesTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-secondary">لا يوجد موظفون حاليًا.</td></tr>';
+            return;
+        }
+
+        employees.forEach(employee => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${employee.name}</td>
+                <td>${employee.email}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger btn-delete-employee" data-id="${employee._id}">حذف</button>
+                </td>
+            `;
+            employeesTableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading employees:', error);
+        employeesTableBody.innerHTML = '<tr><td colspan-="3" class="text-center text-danger">فشل تحميل الموظفين.</td></tr>';
+    }
+}
     // --- 3. EVENT LISTENERS ---
 // في ملف public/js/dashboard.js
     if (replyForm) {
@@ -310,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('loginPassword').value;
             const messageEl = document.getElementById('loginMessage');
             try {
-                const response = await fetch('/api/login', {
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -729,8 +763,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loadConversations();
     });
 
+    const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+    dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+    });
+
     // --- 7. Initial Page Load ---
     function init() {
+         console.log("Step 1: init() function was called.")
         if (document.getElementById('conv-list')) {
             loadConversations();
             // loadAnalytics(); // Assuming you have this function

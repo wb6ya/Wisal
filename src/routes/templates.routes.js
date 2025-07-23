@@ -1,95 +1,85 @@
-// src/routes/templates.routes.js
 const express = require('express');
-const axios = require('axios');
 const { isAuthenticated } = require('../middleware/auth');
-const Company = require('../models/Company');
 const Template = require('../models/Template');
-
 const router = express.Router();
 
-// GET all templates for a company
+/**
+ * @route   GET /api/templates
+ * @desc    Get all templates for the company
+ * @access  Private
+ */
 router.get('/', isAuthenticated, async (req, res) => {
     try {
         const templates = await Template.find({ companyId: req.session.companyId }).sort({ createdAt: -1 });
         res.status(200).json(templates);
     } catch (error) {
-        res.status(500).json({ message: 'Failed to fetch templates' });
+        res.status(500).json({ message: 'Server error while fetching templates.' });
     }
 });
 
-// POST to create a new template
+/**
+ * @route   POST /api/templates
+ * @desc    Create a new message template
+ * @access  Private
+ */
 router.post('/', isAuthenticated, async (req, res) => {
     try {
-        const { name, category, bodyText, language } = req.body;
-        if (!name || !category || !bodyText || !language) {
-            return res.status(400).json({ message: 'All fields are required.' });
+        const { name, text, type, buttons } = req.body;
+        if (!name || !text || !type) {
+            return res.status(400).json({ message: 'Name, text, and type are required.' });
         }
-
-        const company = await Company.findById(req.session.companyId);
-        if (!company || !company.whatsapp.accessToken) {
-            return res.status(401).json({ message: "WhatsApp configuration is missing or invalid." });
-        }
-
-        // 1. Send the request to Meta to create the template
-        const metaApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/message_templates`;
-        const apiRequestData = {
-            name: name,
-            category: category,
-            language: language,
-            components: [{
-                type: "BODY",
-                text: bodyText
-            }]
-        };
-        const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-        
-        const metaResponse = await axios.post(metaApiUrl, apiRequestData, { headers });
-        const metaTemplateId = metaResponse.data.id;
-
-        // 2. Save the new template to our local database
         const newTemplate = new Template({
             companyId: req.session.companyId,
-            name,
-            category,
-            bodyText,
-            language,
-            metaTemplateId,
-            status: 'PENDING' // Meta's approval is pending
+            name, text, type,
+            buttons: type === 'interactive' ? buttons : []
         });
         await newTemplate.save();
-
         res.status(201).json(newTemplate);
     } catch (error) {
-        const errorMessage = error.response?.data?.error?.message || 'Failed to create template.';
-        console.error("Error creating template:", error.response?.data?.error || error);
-        res.status(500).json({ message: errorMessage });
+        res.status(500).json({ message: 'Server error while creating template.' });
     }
 });
 
-// DELETE a template
-router.delete('/:name', isAuthenticated, async (req, res) => {
+/**
+ * @route   PUT /api/templates/:id
+ * @desc    Update an existing template
+ * @access  Private
+ */
+router.put('/:id', isAuthenticated, async (req, res) => {
     try {
-        const { name } = req.params;
-        const company = await Company.findById(req.session.companyId);
-        if (!company || !company.whatsapp.accessToken) {
-            return res.status(401).json({ message: "WhatsApp configuration is missing." });
+        const { name, text, type, buttons } = req.body;
+        const updatedTemplate = await Template.findOneAndUpdate(
+            { _id: req.params.id, companyId: req.session.companyId }, // Security check
+            { name, text, type, buttons: type === 'interactive' ? buttons : [] },
+            { new: true }
+        );
+        if (!updatedTemplate) {
+            return res.status(404).json({ message: 'Template not found.' });
         }
+        res.status(200).json(updatedTemplate);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error while updating template.' });
+    }
+});
 
-        // 1. Send request to Meta to delete the template
-        const metaApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/message_templates`;
-        const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-        await axios.delete(metaApiUrl, { params: { name }, headers });
-        
-        // 2. Delete the template from our local database
-        await Template.findOneAndDelete({ companyId: req.session.companyId, name: name });
-
+/**
+ * @route   DELETE /api/templates/:id
+ * @desc    Delete a template
+ * @access  Private
+ */
+router.delete('/:id', isAuthenticated, async (req, res) => {
+    try {
+        const deletedTemplate = await Template.findOneAndDelete({ 
+            _id: req.params.id, 
+            companyId: req.session.companyId // Security check
+        });
+        if (!deletedTemplate) {
+            return res.status(404).json({ message: 'Template not found.' });
+        }
         res.status(200).json({ message: 'Template deleted successfully.' });
     } catch (error) {
-        const errorMessage = error.response?.data?.error?.message || 'Failed to delete template.';
-        console.error("Error deleting template:", error.response?.data?.error || error);
-        res.status(500).json({ message: errorMessage });
+        res.status(500).json({ message: 'Server error while deleting template.' });
     }
 });
-
 
 module.exports = router;

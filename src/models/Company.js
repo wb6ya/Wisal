@@ -10,22 +10,8 @@ const CompanySchema = new mongoose.Schema({
         phoneNumberId: { type: String },
         verifyToken: { type: String },
     },
-    welcomeMessage: {
-        enabled: { type: Boolean, default: false },
-        type: { 
-            type: String, 
-            enum: ['text', 'interactive'], 
-            default: 'text' 
-        },
-        text: { 
-            type: String, 
-            trim: true,
-            default: 'Welcome! How can we help you today?'
-        },
-        buttons: [
-            { type: String, trim: true }
-        ]
-    }
+    welcomeTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Template', default: null },
+    isBotEnabled: { type: Boolean, default: false },
 }, { timestamps: true });
 
 CompanySchema.pre('save', async function(next) {

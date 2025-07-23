@@ -1,0 +1,113 @@
+<div class="app-layout">
+    <%- include('partials/sidebar', { user: user, activePage: 'templates' }) %>
+
+    <main class="main-content-panel">
+        <header class="panel-header">
+            <div class="d-flex align-items-center gap-4">
+                <h4 class="mb-0">مركز قوالب الرسائل</h4>
+                
+                <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" id="botEnabledSwitch">
+                    <label class="form-check-label" for="botEnabledSwitch">تفعيل البوت</label>
+                </div>
+                </div>
+
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#templateModal" id="addNewTemplateBtn">
+                <i class="bi bi-plus-lg me-2"></i>إضافة قالب جديد
+            </button>
+        </header>
+
+        <div class="p-4 overflow-auto">
+            <p class="text-secondary">هنا يمكنك إدارة كل قوالب الرسائل التفاعلية والنصية التي يستخدمها البوت.</p>
+            
+            <div id="templates-list" class="mt-4">
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templateModalLabel">إضافة قالب جديد</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <input type="hidden" id="templateId"> <div class="mb-3">
+                        <label for="templateName" class="form-label">اسم القالب (داخلي)</label>
+                        <input type="text" class="form-control" id="templateName" required placeholder="مثال: رسالة الترحيب الرئيسية">
+                        <div class="form-text">هذا الاسم لن يظهر للعميل، هو فقط لمساعدتك على تنظيم قوالبك.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="templateText" class="form-label">محتوى الرسالة</label>
+                        <textarea class="form-control" id="templateText" rows="4" required placeholder="اكتب نص الرسالة هنا..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">نوع القالب</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="templateType" id="templateTypeText" value="text" checked>
+                                <label class="form-check-label" for="templateTypeText">نص فقط</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="templateType" id="templateTypeInteractive" value="interactive">
+                                <label class="form-check-label" for="templateTypeInteractive">نص مع أزرار</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="buttons-container" class="mb-3 border rounded p-3 d-none">
+                        <label class="form-label">الأزرار (3 كحد أقصى)</label>
+                        
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" id="templateButton1Title" placeholder="نص الزر الأول">
+                            </div>
+                            <div class="col-md-7">
+                                <select class="form-select" id="templateButton1NextFlow">
+                                    <option selected value="">-- اختر التدفق التالي (اختياري) --</option>
+                                    </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" id="templateButton2Title" placeholder="نص الزر الثاني">
+                            </div>
+                            <div class="col-md-7">
+                                <select class="form-select" id="templateButton2NextFlow">
+                                    <option selected value="">-- اختر التدفق التالي (اختياري) --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" id="templateButton3Title" placeholder="نص الزر الثالث">
+                            </div>
+                            <div class="col-md-7">
+                                <select class="form-select" id="templateButton3NextFlow">
+                                    <option selected value="">-- اختر التدفق التالي (اختياري) --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="submit" form="templateForm" class="btn btn-primary">حفظ القالب</button>
+            </div>
+        </div>
+    </div>
+</div>
