@@ -46,16 +46,19 @@ app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(helmet({
+app.use(
+    helmet({
         contentSecurityPolicy: {
             directives: {
                 ...helmet.contentSecurityPolicy.getDefaultDirectives(),
                 "script-src": ["'self'", "cdn.jsdelivr.net"],
                 "img-src": ["'self'", "data:", "res.cloudinary.com"],
+                "media-src": ["'self'", "res.cloudinary.com"], // <-- هذا هو السطر الجديد
                 "script-src-attr": ["'unsafe-inline'"],
             },
         },
-    }));
+    })
+);
 
 const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET,

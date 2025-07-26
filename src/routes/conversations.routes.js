@@ -11,6 +11,32 @@ const Message = require('../models/Message');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Add this helper function at the top of your routes file
+function ensureFileExtension(filename, mimetype, messageType) {
+    if (!filename || messageType !== 'document') return filename;
+    
+    const hasExtension = filename.includes('.') && 
+                        filename.lastIndexOf('.') > filename.lastIndexOf('/');
+    
+    if (hasExtension) return filename;
+    
+    // MIME type to extension mapping
+    const mimeToExt = {
+        'application/pdf': '.pdf',
+        'application/msword': '.doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+        'text/plain': '.txt',
+        'application/vnd.ms-excel': '.xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/gif': '.gif'
+    };
+    
+    const extension = mimeToExt[mimetype] || '.pdf';
+    return filename + extension;
+}
+
 module.exports = function(io) {
     const router = express.Router();
 
@@ -199,12 +225,36 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
             });
             const mediaUrl = cloudinaryUploadResponse.secure_url;
 
+            const finalMessageType = ['image', 'video', 'audio'].includes(messageType) ? messageType : 'document';
+            let finalFilename = originalFilename;
+
+            // Ensure document files have proper extensions
+            if (finalMessageType === 'document' && finalFilename) {
+                const hasExtension = finalFilename.includes('.') && 
+                                    finalFilename.lastIndexOf('.') > finalFilename.lastIndexOf('/');
+                
+                if (!hasExtension) {
+                    // Try to determine extension from MIME type
+                    const mimeToExt = {
+                        'application/pdf': '.pdf',
+                        'application/msword': '.doc',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                        'text/plain': '.txt',
+                        'application/vnd.ms-excel': '.xls',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
+                    };
+                    
+                    const extension = mimeToExt[file.mimetype] || '.pdf';
+                    finalFilename += extension;
+                }
+            }
+
             const sentMessage = new Message({
                 conversationId: req.params.id,
                 sender: 'agent',
-                messageType: ['image', 'video', 'audio'].includes(messageType) ? messageType : 'document',
+                messageType: finalMessageType,
                 content: mediaUrl,
-                filename: originalFilename,
+                filename: finalFilename, // Use the corrected filename
                 wabaMessageId: metaMessageId,
                 cloudinaryPublicId: cloudinaryUploadResponse.public_id,
                 cloudinaryResourceType: cloudinaryUploadResponse.resource_type
@@ -341,6 +391,63 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
             res.status(500).json({ message: 'Failed to update status' });
         }
     });
+
+/**
+ * @route   GET /download/:messageId
+ * @desc    Streams a file from Cloudinary for secure download with a correct filename.
+ * @access  Private
+ */
+router.get('/download/:messageId', isAuthenticated, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.messageId);
+
+        // Security check to ensure the user owns this conversation
+        if (message) {
+            const conversation = await Conversation.findOne({ _id: message.conversationId, companyId: req.session.companyId });
+            if (!conversation) {
+                return res.status(404).send('File not found or access denied.');
+            }
+        } else {
+            return res.status(404).send('Message not found.');
+        }
+
+        if (!message.cloudinaryPublicId) {
+            return res.status(404).send('File has no download reference.');
+        }
+
+        // Generate the secure URL from Cloudinary
+        const options = {
+            resource_type: message.cloudinaryResourceType || 'raw',
+            sign_url: true
+        };
+        const downloadUrl = cloudinary.url(message.cloudinaryPublicId, options);
+        
+        // --- هذا هو المنطق الجديد والمهم لتحديد اسم الملف ---
+        let downloadFilename = message.filename || 'document';
+        // إذا كان نوع الرسالة مستندًا واسم الملف لا يحتوي على امتداد، أضف .pdf كحل احتياطي
+        if (message.messageType === 'document' && !downloadFilename.includes('.')) {
+            downloadFilename += '.pdf';
+        }
+        // --- نهاية المنطق الجديد ---
+
+        // Stream the file from Cloudinary to the user
+        const response = await axios({
+            method: 'GET',
+            url: downloadUrl,
+            responseType: 'stream'
+        });
+
+        // Set headers to force the browser to download the file with the correct name
+        res.setHeader('Content-Disposition', `attachment; filename="${downloadFilename}"`);
+        res.setHeader('Content-Type', response.headers['content-type']);
+
+        response.data.pipe(res);
+
+    } catch (error) {
+        console.error("Download Error:", error);
+        res.status(500).send('Could not download file.');
+    }
+});
 
     return router;
 };

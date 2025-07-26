@@ -82,13 +82,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isUserNearBottom() {
-        const threshold = 150;
-        return messagesArea.scrollTop + messagesArea.clientHeight >= messagesArea.scrollHeight - threshold;
-    }
+    if (!messagesArea) return false;
+    const threshold = 150;
+    return messagesArea.scrollTop + messagesArea.clientHeight >= messagesArea.scrollHeight - threshold;
+}
 
     function scrollToBottom() {
+    if (messagesArea) {
         messagesArea.scrollTop = messagesArea.scrollHeight;
     }
+}
 
     // --- 3. Core Application Logic ---
     function appendMessage(msg, isPrepending) {
@@ -114,7 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'audio':
                 contentHTML = `<audio controls src="${msg.content}" class="message-media-audio"></audio>`; break;
             case 'document': case 'raw':
-                contentHTML = `<a href="/api/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center"><i class="bi bi-file-earmark-text-fill fs-3 me-2"></i><span>${msg.filename || 'Download File'}</span></a>`; break;
+                // الرابط الصحيح يجب أن يحتوي على /conversations
+                contentHTML = `<a href="/api/conversations/download/${msg._id}" target="_blank" class="text-decoration-none d-flex align-items-center">
+                    <i class="bi bi-file-earmark-text-fill fs-3 me-2"></i>
+                    <span>${msg.filename || 'Download File'}</span>
+                </a>`;
+                break;
             default:
                 contentHTML = document.createTextNode(msg.content).textContent; break;
         }
@@ -288,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     } catch (error) {
         console.error('Error loading employees:', error);
-        employeesTableBody.innerHTML = '<tr><td colspan-="3" class="text-center text-danger">فشل تحميل الموظفين.</td></tr>';
+        employeesTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">فشل تحميل الموظفين.</td></tr>';
     }
 }
     // --- 3. EVENT LISTENERS ---
@@ -616,27 +624,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
         // A smart listener for clicks on the entire message area
-        if (messagesArea) {
-            messagesArea.addEventListener('click', (e) => {
-                // Check if the user clicked on a quoted reply box
-                const quotedBox = e.target.closest('.quoted-reply');
-                if (quotedBox) {
-                    const originalMessageId = quotedBox.dataset.replyId;
-                    const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
-                    
-                    if (originalMessageBubble) {
-                        // If the original message is found, scroll to it smoothly
-                        originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // Add a temporary "flash" effect to highlight it
-                        originalMessageBubble.classList.add('flash');
-                        setTimeout(() => {
-                            originalMessageBubble.classList.remove('flash');
-                        }, 1200); // Remove the flash after 1.2 seconds
+    if (messagesArea) {
+        messagesArea.addEventListener('click', async (e) => {
+            if (e.target.closest('.download-link')) {
+                e.preventDefault();
+                const messageId = e.target.closest('.download-link').dataset.messageId;
+                try {
+                    const response = await fetch(`/api/download/${messageId}`);
+                    const data = await response.json();
+                    if (data.downloadUrl) {
+                        window.open(data.downloadUrl, '_blank');
                     }
+                } catch (error) {
+                    console.error('Download error:', error);
                 }
-            });
-        }
+            }
+            
+            // Check if the user clicked on a quoted reply box
+            const quotedBox = e.target.closest('.quoted-reply');
+            if (quotedBox) {
+                const originalMessageId = quotedBox.dataset.replyId;
+                const originalMessageBubble = document.querySelector(`.message-bubble[data-message-id="${originalMessageId}"]`);
+                
+                if (originalMessageBubble) {
+                    originalMessageBubble.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    originalMessageBubble.classList.add('flash');
+                    setTimeout(() => {
+                        originalMessageBubble.classList.remove('flash');
+                    }, 1200);
+                }
+            }
+        });
+    }
 
         document.body.addEventListener('click', async (e) => {
             if (e.target.matches('.status-change-item')) {
@@ -695,11 +714,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // NEW: Listener for Deleting Employees
     if (employeesTableBody) {
         employeesTableBody.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('btn-outline-danger')) {
+            if (e.target.classList.contains('btn-delete-employee')) {
                 const employeeId = e.target.dataset.id;
                 if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
-                    await fetch(`/api/employees/${employeeId}`, { method: 'DELETE' });
-                    loadEmployees(); // إعادة تحميل القائمة
+                    try {
+                        const response = await fetch(`/api/employees/${employeeId}`, { method: 'DELETE' });
+                        if (response.ok) {
+                            loadEmployees();
+                        } else {
+                            alert('فشل حذف الموظف');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting employee:', error);
+                        alert('حدث خطأ أثناء حذف الموظف');
+                    }
                 }
             }
         });
@@ -763,10 +791,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loadConversations();
     });
 
-    const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
-    dropdownElementList.map(function (dropdownToggleEl) {
-        return new bootstrap.Dropdown(dropdownToggleEl);
-    });
+    setTimeout(() => {
+        const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+        dropdownElementList.map(function (dropdownToggleEl) {
+            return new bootstrap.Dropdown(dropdownToggleEl);
+        });
+    }, 100);
 
     // --- 7. Initial Page Load ---
     function init() {

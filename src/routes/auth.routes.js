@@ -37,7 +37,13 @@ router.post('/register', registerValidationRules, async (req, res) => {
         
         const company = new Company({ companyName, email, password });
         await company.save();
-        res.status(201).json({ message: 'Company registered successfully!' });
+        
+        // Create session after successful registration
+        req.session.userId = company._id;
+        req.session.companyId = company._id;
+        req.session.role = 'admin';
+
+        res.status(201).json({ message: 'Company registered successfully!', redirectUrl: '/dashboard' });
     } catch (error) {
         res.status(500).json({ message: 'Server error during registration' });
     }

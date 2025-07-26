@@ -42,19 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
             messageEl.textContent = '';
 
             try {
-                const response = await fetch('/api/register', {
+                const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ companyName, email, password })
                 });
                 
                 const data = await response.json();
-                messageEl.textContent = data.message;
 
-                if (response.ok) {
-                    messageEl.style.color = 'green';
-                    registerForm.reset();
+                if (response.ok && data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
                 } else {
+                    messageEl.textContent = data.message || 'Registration failed.';
                     messageEl.style.color = 'red';
                 }
             } catch (error) {

@@ -147,58 +147,6 @@ module.exports = function(io) {
         }
     });
 
-    router.get('/download/:messageId', isAuthenticated, async (req, res) => {
-        try {
-            const message = await Message.findById(req.params.messageId);
-
-            // Security check: Ensure the message belongs to a conversation of the current company
-            if (message) {
-                const conversation = await Conversation.findOne({ _id: message.conversationId, companyId: req.session.companyId });
-                if (!conversation) {
-                    // If the conversation doesn't belong to the company, treat the message as not found
-                    return res.status(404).send('File not found or access denied.');
-                }
-            }
-
-            if (!message || !message.content || message.messageType === 'text') {
-                return res.status(404).send('File not found.');
-            }
-
-            // Use the stored public_id and resource_type to generate the URL
-            const publicId = message.cloudinaryPublicId;
-            const resourceType = message.cloudinaryResourceType;
-
-            if (!publicId || !resourceType) {
-                return res.status(404).send('File has no download reference.');
-            }
-            
-            // Generate a signed, expiring download URL from Cloudinary
-            const options = {
-                resource_type: resourceType,
-                sign_url: true, // This makes the URL secure
-                expires_at: Math.floor(Date.now() / 1000) + 3600 // URL is valid for 1 hour
-            };
-
-            // Only force download for documents. For audio/video, let the browser handle streaming.
-            if (message.messageType === 'document') {
-                options.attachment = message.filename;
-            }
-
-            const downloadUrl = cloudinary.url(publicId, options);
-            
-            // Redirect the user to this secure download URL
-            res.redirect(downloadUrl);
-
-        } catch (error) {
-            console.error("Download Error:", error.message);
-            if (error.http_code) {
-                console.error("Cloudinary HTTP Code:", error.http_code);
-                console.error("Cloudinary Error Message:", error.message);
-            }
-            res.status(500).send('Could not generate download link.');
-        }
-    });
-
     // POST to initiate a new conversation with a template
     router.post('/conversations/initiate', isAuthenticated, async (req, res) => {
         try {
