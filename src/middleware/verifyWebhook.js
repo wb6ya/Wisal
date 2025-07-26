@@ -2,32 +2,33 @@
 const crypto = require('crypto');
 
 function verifyWebhookSignature(req, res, next) {
-    // 1. احصل على التوقيع من هيدر الطلب
+    console.log('\n--- [Security Check] Verifying Webhook Signature ---');
+    
     const signature = req.headers['x-hub-signature-256'];
-
+    
     if (!signature) {
-        console.warn('Webhook received without signature. Rejecting.');
-        return res.sendStatus(403); // Forbidden
+        console.error('### REJECTED (Reason: Missing Signature Header)');
+        return res.sendStatus(403);
     }
 
-    // 2. قم بحساب التوقيع المتوقع بنفسك
-    // req.body هنا هو الجسم الخام (raw buffer) بفضل التعديل في index.js
+    // حساب التوقيع المتوقع
     const expectedHash = crypto.createHmac('sha256', process.env.META_APP_SECRET)
-                               .update(req.body)
+                               .update(req.body) // req.body هو الجسم الخام هنا
                                .digest('hex');
 
     const expectedSignature = `sha256=${expectedHash}`;
 
-    // 3. قارن بين التوقيعين
+    console.log(`Received Signature:  "${signature}"`);
+    console.log(`Calculated Signature: "${expectedSignature}"`);
+
     if (signature !== expectedSignature) {
-        console.error('Webhook signature verification failed! Request rejected.');
-        return res.sendStatus(403); // Forbidden
+        console.error('### REJECTED (Reason: Signatures DO NOT MATCH!)');
+        console.error('Please check your META_APP_SECRET in the .env file.');
+        return res.sendStatus(403);
     }
     
-    // 4. إذا كان التوقيع صحيحًا، قم بتحليل الجسم (parse) ليستطيع الكود التالي التعامل معه
+    console.log('✅ SUCCESS: Signature Verified. Passing request to main webhook logic.');
     req.body = JSON.parse(req.body.toString());
-    
-    // اسمح للطلب بالمرور إلى الخطوة التالية (مسار الـ webhook)
     next();
 }
 

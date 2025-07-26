@@ -105,7 +105,18 @@ function openModalForEdit(template) {
      * @returns {string} - The HTML string for the card.
      */
     function renderTemplateCard(template, companySettings) {
-        const typeBadgeColor = template.type === 'interactive' ? 'bg-success' : 'bg-info';
+        let typeBadgeColor = 'bg-info';
+        let typeText = template.type;
+        if (template.type === 'interactive') {
+            typeBadgeColor = 'bg-success';
+        } else if (template.type === 'contact_agent') {
+            typeBadgeColor = 'bg-warning text-dark';
+            typeText = 'Contact Agent';
+        } else if (template.type === 'resolve_conversation') {
+            typeBadgeColor = 'bg-danger';
+            typeText = 'Resolve Conversation';
+        }
+
         const isWelcomeTemplate = companySettings.welcomeTemplateId === template._id;
         
         // Find the names of the next templates for the buttons
@@ -164,21 +175,46 @@ function openModalForEdit(template) {
 
     // --- 3. Event Listeners ---
 
-    botEnabledSwitch.addEventListener('change', async () => {
-        const isEnabled = botEnabledSwitch.checked;
-        try {
-            await fetch('/api/bot-settings/toggle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isEnabled })
-            });
-            // يمكنك إضافة رسالة تأكيد هنا إذا أردت
-        } catch (error) {
-            console.error("Failed to toggle bot status:", error);
-            alert('فشل تغيير حالة البوت.');
-        }
-    });
+// في ملف public/js/templates.js
 
+// في ملف public/js/templates.js
+
+    if (botEnabledSwitch) {
+        botEnabledSwitch.addEventListener('change', async () => {
+            const isEnabled = botEnabledSwitch.checked;
+            
+            // --- 1. الكاشف الأول: هل يعمل الزر؟ ---
+            console.log(`--- Button Toggled ---`);
+            console.log(`New state to be sent: ${isEnabled}`);
+
+            try {
+                const response = await fetch('/api/bot-settings/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isEnabled })
+                });
+
+                const data = await response.json();
+
+                // --- 2. الكاشف الثاني: ماذا رد الخادم؟ ---
+                console.log("Server response:", data);
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to update bot status');
+                }
+
+                // --- 3. الكاشف الثالث: إعادة تحميل البيانات للتأكيد ---
+                console.log("Reloading all settings to confirm the change...");
+                await loadTemplatesAndSettings();
+                console.log("Reload complete. The button should now reflect the saved state.");
+
+            } catch (error) {
+                console.error("### FATAL ERROR while toggling bot:", error);
+                // في حالة الخطأ، أعد تحميل الحالة من الخادم لإعادة الزر إلى وضعه الصحيح
+                await loadTemplatesAndSettings();
+            }
+        });
+    }
     // مستمع لأزرار "تعيين كرسالة ترحيب"
     templatesListDiv.addEventListener('click', async (e) => {
         const setWelcomeButton = e.target.closest('.btn-set-welcome');
@@ -194,7 +230,8 @@ function openModalForEdit(template) {
                 loadTemplatesAndSettings(); // أعد تحميل القائمة لتحديث شكل الأزرار
             } catch (error) {
                 console.error("Failed to set welcome template:", error);
-                alert('فشل تعيين الرسالة الترحيبية.');
+                showStatusModal('فشل التعيين', 'حدث خطأ أثناء تعيين القالب كرسالة ترحيب.', 'error');
+                setTimeout(hideStatusModal, 2000); // إخفاء بعد ثانيتين
             }
         }
     });
@@ -265,7 +302,8 @@ function openModalForEdit(template) {
             loadTemplatesAndSettings(); // Refresh the list with updated data
         } catch (error) {
             console.error(error);
-            alert('فشل حفظ القالب. يرجى المحاولة مرة أخرى.');
+            showStatusModal('فشل الحفظ', error.message || 'حدث خطأ أثناء حفظ القالب.', 'error');
+            setTimeout(hideStatusModal, 2000); // إخفاء بعد ثانيتين
         }
     });
     

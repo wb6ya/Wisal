@@ -37,7 +37,7 @@ const templateSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['text', 'interactive'],
+        enum: ['text', 'interactive', 'contact_agent', 'resolve_conversation'],
         default: 'text'
     },
     buttons: {

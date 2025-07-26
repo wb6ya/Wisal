@@ -1,4 +1,4 @@
-alert("This is the correct dashboard.js file!");
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. Element Selectors & Initial State ---
@@ -45,6 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeButton1 = document.getElementById('welcomeButton1');
     const welcomeButton2 = document.getElementById('welcomeButton2');
     const welcomeButton3 = document.getElementById('welcomeButton3');
+    const statusModalEl = document.getElementById('statusModal');
+    const statusModal = new bootstrap.Modal(statusModalEl);
+    const statusModalSpinner = document.getElementById('statusModalSpinner');
+    const statusModalLabel = document.getElementById('statusModalLabel');
+    const statusModalMessage = document.getElementById('statusModalMessage');
+    const statusModalSuccessIcon = document.getElementById('statusModalSuccessIcon');
+    const statusModalErrorIcon = document.getElementById('statusModalErrorIcon');
+    const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
+
 
     // --- Socket.IO & State Initialization ---
     const socket = io();
@@ -71,6 +80,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(dateString).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
     }
     
+    /**
+     * دالة مساعدة جديدة لإظهار نافذة الحالة
+     * @param {string} title - العنوان الرئيسي للنافذة
+     * @param {string} message - الرسالة الفرعية (اختياري)
+     * @param {string} type - 'loading', 'success', or 'error'
+     */
+    function showStatusModal(title, message = '', type = 'loading') {
+        statusModalLabel.textContent = title;
+        statusModalMessage.textContent = message;
+
+        // إظهار وإخفاء الأيقونات بناءً على النوع
+        statusModalSpinner.style.display = type === 'loading' ? 'block' : 'none';
+        statusModalSuccessIcon.style.display = type === 'success' ? 'block' : 'none';
+        statusModalErrorIcon.style.display = type === 'error' ? 'block' : 'none';
+
+        statusModal.show();
+    }
+
+    function hideStatusModal() {
+        statusModal.hide();
+    }
+
     function generateHSLColor(str) {
         if (!str) return 'hsl(210, 50%, 60%)';
         let hash = 0;
@@ -223,7 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         await loadMessages(conversationId);
         
-        scrollToBottom();
+        setTimeout(() => {
+            scrollToBottom();
+        }, 50); // تأخير بسيط جدًا (50 جزء من الثانية)
         
         if(replyForm) replyForm.classList.remove('d-none');
     }
@@ -322,12 +355,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     replyMessageInput.value = '';
                     if (replyPreviewContainer) replyPreviewContainer.classList.add('d-none');
                     messageToReplyToId = null;
-                } else {
+                }  else {
                     const errorData = await response.json();
-                    alert('Failed to send message: ' + (errorData.message || 'Unknown error'));
+                    // أظهر رسالة خطأ ثم أخفها بعد 3 ثوانٍ
+                    showStatusModal('فشل إرسال الرسالة', errorData.message || 'Unknown error', 'error');
+                    setTimeout(() => hideStatusModal(), 3000);
                 }
             } catch (error) {
-                alert('An unexpected error occurred.');
+                showStatusModal('حدث خطأ', error.message || 'An error occurred while sending the message.', 'error');
+                setTimeout(hideStatusModal, 3000);
             } finally {
                 replyButton.disabled = false;
                 replyButton.innerHTML = originalButtonContent;
@@ -336,13 +372,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    if (messagesArea) {
-        messagesArea.addEventListener('scroll', () => {
-            if (messagesArea.scrollTop === 0 && !isLoadingMessages && !allMessagesLoaded && activeConversationId) {
-                loadMessages(activeConversationId);
-            }
-        });
-    }
+if (messagesArea) {
+    messagesArea.addEventListener('scroll', () => {
+        // 1. منطق تحميل المزيد من الرسائل القديمة
+        if (messagesArea.scrollTop === 0 && !isLoadingMessages && !allMessagesLoaded && activeConversationId) {
+            loadMessages(activeConversationId);
+        }
+
+        // 2. منطق إظهار وإخفاء زر النزول للأسفل
+        const isScrolledUp = messagesArea.scrollHeight - messagesArea.scrollTop > messagesArea.clientHeight + 200; // 200px threshold
+        if (isScrolledUp) {
+            scrollToBottomBtn.classList.add('visible');
+        } else {
+            scrollToBottomBtn.classList.remove('visible');
+        }
+    });
+}
 
     // --- 3. EVENT LISTENERS ---
     if (loginForm) {
@@ -406,7 +451,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 messageEl.textContent = data.message;
-                messageEl.style.color = response.ok ? 'green' : 'red';
+                if (response.ok) {
+                    showStatusModal('تم بنجاح', data.message, 'success');
+                } else {
+                    showStatusModal('حدث خطأ', data.message, 'error');
+                }
+                setTimeout(() => hideStatusModal(), 2500);
+
             } catch (error) {
                 messageEl.textContent = 'Failed to connect to server.';
                 messageEl.style.color = 'red';
@@ -422,6 +473,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mediaUploadInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file || !activeConversationId) return;
+
+            showStatusModal('جاري رفع الملف...', 'يرجى الانتظار.');
+
             const formData = new FormData();
             formData.append('mediaFile', file);
             try {
@@ -430,18 +484,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formData
                 });
                 if (response.ok) {
-                    // The message will be appended via the 'new_message' socket event.
-                    // This prevents the media message from appearing twice.
+                    const successData = await response.json();
+                    hideStatusModal();
                 } else {
                     const errorData = await response.json();
-                    alert('Failed to send media: ' + (errorData.message || 'Unknown error'));
+                    showStatusModal('فشل الرفع', errorData.message, 'error');
+                    setTimeout(hideStatusModal, 3000);
                 }
             } catch (error) {
                 console.error('Error uploading media:', error);
-                alert('An error occurred during upload.');
+                // أظهر رسالة خطأ في نفس النافذة
+                statusModalLabel.textContent = 'فشل الرفع';
+                statusModalMessage.textContent = error.message;
+                statusModalSpinner.style.display = 'none'; // أخفِ الدائرة
+                // انتظر قليلاً ثم أخفِ النافذة
+                setTimeout(() => hideStatusModal(), 3000);
+                return; // توقف هنا
             }
+            hideStatusModal();
         });
     }
+
+    if (scrollToBottomBtn) {
+    scrollToBottomBtn.addEventListener('click', () => {
+        messagesArea.scrollTo({
+            top: messagesArea.scrollHeight,
+            behavior: 'smooth' // For a smooth scrolling effect
+        });
+    });
+}
 
     if (generateTokenBtn) {
         generateTokenBtn.addEventListener('click', () => {
@@ -461,15 +532,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ customerPhone, templateName })
                 });
                 if (response.ok) {
-                    alert('Template message sent successfully!');
+                    showStatusModal('تم الإرسال بنجاح', 'تم بدء المحادثة مع العميل.', 'success');
+                    setTimeout(hideStatusModal, 2000); // إخفاء بعد ثانيتين
                     const modal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
                     if(modal) modal.hide();
                 } else {
                     const errorData = await response.json();
-                    alert('Failed to send template: ' + errorData.message);
+                    showStatusModal('فشل الإرسال', errorData.message || 'Unknown error', 'error');
+                    setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
                 }
             } catch (error) {
-                alert('An error occurred.');
+                showStatusModal('حدث خطأ', error.message || 'An error occurred while sending the template.', 'error');
+                setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
             }
         });
     }
@@ -585,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notesBtn) {
         notesBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (!activeConversationId) return alert('Please select a conversation first.');
+            if (!activeConversationId) return 
             
             try {
                 const response = await fetch(`/api/conversations/${activeConversationId}/notes`);
@@ -672,7 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     // الواجهة ستتحدث تلقائيًا بفضل Socket.IO
                 } catch (error) {
-                    alert('Failed to update status.');
+                    showStatusModal('فشل التحديث', error.message || 'حدث خطأ أثناء تحديث الحالة.', 'error');
+                    setTimeout(hideStatusModal, 3000);
                 }
             }
         });
@@ -702,10 +777,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     addEmployeeForm.reset();
                 } else {
                     const errorData = await response.json();
-                    alert('فشل إضافة الموظف: ' + errorData.message);
+                    showStatusModal('فشل الإضافة', errorData.message, 'error');
+                    setTimeout(() => hideStatusModal(), 3000);
                 }
             } catch (error) {
-                alert('حدث خطأ.');
+                showStatusModal('حدث خطأ', error.message || 'An error occurred while adding the employee.', 'error');
+                setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
             }
         });
     }
@@ -722,11 +799,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (response.ok) {
                             loadEmployees();
                         } else {
-                            alert('فشل حذف الموظف');
+                            showStatusModal('فشل الحذف', 'حدث خطأ أثناء حذف الموظف.', 'error');
+                            setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
                         }
                     } catch (error) {
                         console.error('Error deleting employee:', error);
-                        alert('حدث خطأ أثناء حذف الموظف');
+                        showStatusModal('فشل الحذف', 'حدث خطأ أثناء حذف الموظف.', 'error');
+                        setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
                     }
                 }
             }

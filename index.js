@@ -42,23 +42,29 @@ const webhookRouter = require('./src/routes/webhook')(io);
 // =================================================================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
+
+// --- هذا هو التعديل الأهم ---
+// يجب أن يكون هذا السطر قبل express.json()
+// ليقوم بقراءة الجسم الخام لطلبات الـ webhook فقط
 app.use('/webhook', express.raw({ type: 'application/json' }));
+
+// استخدم المحلل العادي لباقي المسارات
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// --- نهاية التعديل ---
+
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(
-    helmet({
-        contentSecurityPolicy: {
-            directives: {
-                ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-                "script-src": ["'self'", "cdn.jsdelivr.net"],
-                "img-src": ["'self'", "data:", "res.cloudinary.com"],
-                "media-src": ["'self'", "res.cloudinary.com"], // <-- هذا هو السطر الجديد
-                "script-src-attr": ["'unsafe-inline'"],
-            },
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "cdn.jsdelivr.net"],
+            "img-src": ["'self'", "data:", "res.cloudinary.com"],
+            "media-src": ["'self'", "res.cloudinary.com"],
+            "script-src-attr": ["'unsafe-inline'"],
         },
-    })
-);
+    },
+}));
 
 const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET,

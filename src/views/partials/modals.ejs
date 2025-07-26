@@ -6,54 +6,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                     <div class="modal-body p-4">
-                        <form id="settingsForm">
-                            <hr class="my-4">
-
-                            <h6 class="mb-3">إعدادات الرسالة الترحيبية</h6>
-
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" role="switch" id="welcomeEnabled" <%= company.welcomeMessage?.enabled ? 'checked' : '' %>>
-                                <label class="form-check-label" for="welcomeEnabled">تفعيل رسالة الترحيب للعملاء الجدد</label>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">نوع الرسالة</label>
-                                <div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="welcomeType" id="welcomeTypeText" value="text" <%= company.welcomeMessage?.type === 'text' ? 'checked' : '' %>>
-                                        <label class="form-check-label" for="welcomeTypeText">نص فقط</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="welcomeType" id="welcomeTypeInteractive" value="interactive" <%= company.welcomeMessage?.type === 'interactive' ? 'checked' : '' %>>
-                                        <label class="form-check-label" for="welcomeTypeInteractive">نص مع أزرار</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="welcomeText" class="form-label">محتوى الرسالة</label>
-                                <textarea class="form-control" id="welcomeText" rows="3"><%= company.welcomeMessage?.text %></textarea>
-                            </div>
-
-                            <div id="welcomeButtonsContainer" class="mb-3 <%= company.welcomeMessage?.type === 'interactive' ? '' : 'd-none' %>">
-                                <label class="form-label">نصوص الأزرار (3 كحد أقصى)</label>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text">1</span>
-                                    <input type="text" class="form-control" id="welcomeButton1" value="<%= company.welcomeMessage?.buttons?.[0] || '' %>" placeholder="نص الزر الأول">
-                                </div>
-                                <div class="input-group mb-2">
-                                    <span class="input-group-text">2</span>
-                                    <input type="text" class="form-control" id="welcomeButton2" value="<%= company.welcomeMessage?.buttons?.[1] || '' %>" placeholder="نص الزر الثاني (اختياري)">
-                                </div>
-                                <div class="input-group">
-                                    <span class="input-group-text">3</span>
-                                    <input type="text" class="form-control" id="welcomeButton3" value="<%= company.welcomeMessage?.buttons?.[2] || '' %>" placeholder="نص الزر الثالث (اختياري)">
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
-                            </div>
+                        <form id="settingsForm">  
                             <div class="mb-3">
                                 <label for="accessToken" class="form-label">Access Token</label>
                                 <input type="password" class="form-control" id="accessToken" value="<%= company.whatsapp?.accessToken || '' %>" required autocomplete="new-password">
@@ -194,10 +147,14 @@
                                     <input type="email" class="form-control" id="employeeEmail" required>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="employeePhone" class="form-label">رقم الواتساب (مع رمز الدولة)</label>
+                                    <input type="tel" class="form-control" id="employeePhone" placeholder="e.g., 9665xxxxxxxx">
+                                </div>
+                                <div class="mb-3">
                                     <label for="employeePassword" class="form-label">كلمة المرور</label>
                                     <input type="password" class="form-control" id="employeePassword" required>
                                 </div>
-                                <button type="submit" class="btn btn-primary w-100 mt-2">إضافة موظف</button>
+                                <button type="submit" class="btn btn-primary w-100">إضافة موظف</button>
                             </form>
                         </div>
                         <div class="col-md-7">
@@ -222,7 +179,7 @@
         </div>
     </div>
 
-        <main class="main-content tab-content">
+    <main class="main-content tab-content">
         <div class="tab-pane fade show active h-100" id="chat-pane" role="tabpanel">
             </div>
 
@@ -261,3 +218,33 @@
             </div>
         </div>
     </main>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div id="statusModalSpinner" class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="modal-title" id="statusModalLabel">جاري التحميل...</h5>
+                <p id="statusModalMessage" class="text-secondary mb-0 mt-2"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div id="statusModalSpinner" class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <i id="statusModalSuccessIcon" class="bi bi-check-circle-fill text-success fs-1 mb-3" style="display: none;"></i>
+                <i id="statusModalErrorIcon" class="bi bi-x-circle-fill text-danger fs-1 mb-3" style="display: none;"></i>
+
+                <h5 class="modal-title" id="statusModalLabel">جاري التحميل...</h5>
+                <p id="statusModalMessage" class="text-secondary mb-0 mt-2"></p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -849,3 +849,25 @@ img.message-media-img, video.message-media-video {
     /* You would need JS to toggle between conversations and chat view,
        but this CSS sets up the responsive structure. */
 }
+/* --- Scroll to Bottom Button --- */
+#scrollToBottomBtn {
+    position: absolute;
+    bottom: 85px; /* Adjust this value to position it above the reply area */
+    left: 25px; /* Adjust for RTL */
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    z-index: 100;
+
+    /* Start hidden and fade in/out smoothly */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+#scrollToBottomBtn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}

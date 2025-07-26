@@ -155,124 +155,153 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
     });
 
     // POST a media file to a conversation
-    router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
-        try {
+  router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
+    try {
+        const companyId = req.session.companyId;
+        const company = await Company.findById(companyId);
+        const conversation = await Conversation.findById(req.params.id);
 
-            console.log("--- Send Media Route Hit ---");
-
-            const companyId = req.session.companyId;
-            const company = await Company.findById(companyId);
-            const conversation = await Conversation.findById(req.params.id);
-            if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
-                return res.status(400).json({ message: "Missing file, company data, or access token." });
-            }
-            console.log(`Step 1: File received by Multer successfully. Name: ${req.file.originalname}, Size: ${req.file.size} bytes`);
-            const file = req.file;
-            const originalFilename = file.originalname;
-
-            if (!company || !conversation || !company.whatsapp.accessToken) {
-                console.error("### ERROR: Company, Conversation or Access Token not found.");
-                return res.status(400).json({ message: "Missing company data or access token." });
-            }
-
-            console.log("Step 2: Starting upload to WhatsApp API...");
-
-            const form = new FormData();
-            form.append('messaging_product', 'whatsapp');
-            form.append('file', file.buffer, {
-                filename: originalFilename,
-                contentType: file.mimetype,
-            });
-
-            const uploadHeaders = { ...form.getHeaders(), 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const uploadResponse = await axios.post(
-                `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/media`,
-                form,
-                { headers: uploadHeaders }
-            );
-            const mediaId = uploadResponse.data.id;
-            console.log(`Step 3: WhatsApp upload successful. Media ID: ${mediaId}`);
-
-            console.log("Step 4: Starting upload to Cloudinary...");
-            const messageType = file.mimetype.split('/')[0];
-            let apiRequestData;
-            if (messageType === 'image') {
-                apiRequestData = { type: "image", image: { id: mediaId } };
-            } else if (messageType === 'video') {
-                apiRequestData = { type: "video", video: { id: mediaId } };
-            } else if (messageType === 'audio') {
-                apiRequestData = { type: "audio", audio: { id: mediaId } };
-            } else {
-                apiRequestData = { type: "document", document: { id: mediaId, filename: originalFilename } };
-            }
-            
-            const finalApiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, ...apiRequestData };
-            const sendHeaders = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            const metaResponse = await axios.post(`https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
-            const metaMessageId = metaResponse.data.messages[0].id;
-
-            const resourceTypeForUpload = ['image', 'video'].includes(messageType) ? messageType : 'raw';
-            const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
-                const uploadStream = cloudinary.uploader.upload_stream({
-                    resource_type: resourceTypeForUpload,
-                    upload_preset: 'whatsapp_files',
-                    folder: `${companyId}/media`
-                }, (error, result) => {
-                    if (error) return reject(error);
-                    resolve(result);
-                });
-                uploadStream.end(file.buffer);
-            });
-            const mediaUrl = cloudinaryUploadResponse.secure_url;
-
-            const finalMessageType = ['image', 'video', 'audio'].includes(messageType) ? messageType : 'document';
-            let finalFilename = originalFilename;
-
-            // Ensure document files have proper extensions
-            if (finalMessageType === 'document' && finalFilename) {
-                const hasExtension = finalFilename.includes('.') && 
-                                    finalFilename.lastIndexOf('.') > finalFilename.lastIndexOf('/');
-                
-                if (!hasExtension) {
-                    // Try to determine extension from MIME type
-                    const mimeToExt = {
-                        'application/pdf': '.pdf',
-                        'application/msword': '.doc',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-                        'text/plain': '.txt',
-                        'application/vnd.ms-excel': '.xls',
-                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
-                    };
-                    
-                    const extension = mimeToExt[file.mimetype] || '.pdf';
-                    finalFilename += extension;
-                }
-            }
-
-            const sentMessage = new Message({
-                conversationId: req.params.id,
-                sender: 'agent',
-                messageType: finalMessageType,
-                content: mediaUrl,
-                filename: finalFilename, // Use the corrected filename
-                wabaMessageId: metaMessageId,
-                cloudinaryPublicId: cloudinaryUploadResponse.public_id,
-                cloudinaryResourceType: cloudinaryUploadResponse.resource_type
-            });
-            await sentMessage.save();
-
-            conversation.lastMessage = ['image', 'video'].includes(messageType) ? messageType.charAt(0).toUpperCase() + messageType.slice(1) : originalFilename;
-            conversation.lastMessageTimestamp = sentMessage.createdAt;
-            await conversation.save();
-
-            io.to(companyId.toString()).emit('conversation_updated', conversation);
-            io.to(companyId.toString()).emit('new_message', sentMessage);
-            res.status(200).json(sentMessage);
-        } catch (error) {
-            console.error("Error sending media:", error.response ? error.response.data : error);
-            res.status(500).json({ message: 'Failed to send media' });
+        // --- 1. التحقق من وجود كل البيانات أولاً ---
+        if (!req.file || !company || !conversation || !company.whatsapp.accessToken) {
+            return res.status(400).json({ message: "Missing file, company data, or access token." });
         }
-    });
+
+        // Declare file variable immediately after initial checks
+        const file = req.file;
+        const originalFilename = file.originalname;
+
+        const allowedMimeTypes = [
+            // Images
+            'image/jpeg',
+            'image/png',
+            'image/webp', // For stickers
+
+            // Audio
+            'audio/aac',
+            'audio/mp4',
+            'audio/mpeg', // MP3
+            'audio/amr',
+            'audio/ogg', // Only with OPUS codec
+
+            // Video
+            'video/mp4',
+            'video/3gpp',
+
+            // Documents
+            'text/plain',
+            'application/pdf',
+            'application/vnd.ms-powerpoint', // .ppt
+            'application/msword', // .doc
+            'application/vnd.ms-excel', // .xls
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // .xlsx
+        ];
+
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            return res.status(400).json({ message: `File type not supported.` });
+        }
+
+        console.log(`Step 1: File received by Multer successfully. Name: ${originalFilename}, Size: ${file.size} bytes`);
+
+        console.log("Step 2: Starting upload to WhatsApp API...");
+
+        const form = new FormData();
+        form.append('messaging_product', 'whatsapp');
+        form.append('file', file.buffer, {
+            filename: originalFilename,
+            contentType: file.mimetype,
+        });
+
+        const uploadHeaders = { ...form.getHeaders(), 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+        const uploadResponse = await axios.post(
+            `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/media`,
+            form,
+            { headers: uploadHeaders }
+        );
+        const mediaId = uploadResponse.data.id;
+        console.log(`Step 3: WhatsApp upload successful. Media ID: ${mediaId}`);
+
+        console.log("Step 4: Starting upload to Cloudinary...");
+        const messageType = file.mimetype.split('/')[0];
+        let apiRequestData;
+        if (messageType === 'image') {
+            apiRequestData = { type: "image", image: { id: mediaId } };
+        } else if (messageType === 'video') {
+            apiRequestData = { type: "video", video: { id: mediaId } };
+        } else if (messageType === 'audio') {
+            apiRequestData = { type: "audio", audio: { id: mediaId } };
+        } else {
+            apiRequestData = { type: "document", document: { id: mediaId, filename: originalFilename } };
+        }
+        
+        const finalApiRequestData = { messaging_product: "whatsapp", to: conversation.customerPhone, ...apiRequestData };
+        const sendHeaders = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
+        const metaResponse = await axios.post(`https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`, finalApiRequestData, { headers: sendHeaders });
+        const metaMessageId = metaResponse.data.messages[0].id;
+
+        const resourceTypeForUpload = ['image', 'video'].includes(messageType) ? messageType : 'raw';
+        const cloudinaryUploadResponse = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream({
+                resource_type: resourceTypeForUpload,
+                upload_preset: 'whatsapp_files',
+                folder: `${companyId}/media`
+            }, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            });
+            uploadStream.end(file.buffer);
+        });
+        const mediaUrl = cloudinaryUploadResponse.secure_url;
+
+        const finalMessageType = ['image', 'video', 'audio'].includes(messageType) ? messageType : 'document';
+        let finalFilename = originalFilename;
+
+        // Ensure document files have proper extensions
+        if (finalMessageType === 'document' && finalFilename) {
+            const hasExtension = finalFilename.includes('.') && 
+                                finalFilename.lastIndexOf('.') > finalFilename.lastIndexOf('/');
+            
+            if (!hasExtension) {
+                // Try to determine extension from MIME type
+                const mimeToExt = {
+                    'application/pdf': '.pdf',
+                    'application/msword': '.doc',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+                    'text/plain': '.txt',
+                    'application/vnd.ms-excel': '.xls',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
+                };
+                
+                const extension = mimeToExt[file.mimetype] || '.pdf';
+                finalFilename += extension;
+            }
+        }
+
+        const sentMessage = new Message({
+            conversationId: req.params.id,
+            sender: 'agent',
+            messageType: finalMessageType,
+            content: mediaUrl,
+            filename: finalFilename, // Use the corrected filename
+            wabaMessageId: metaMessageId,
+            cloudinaryPublicId: cloudinaryUploadResponse.public_id,
+            cloudinaryResourceType: cloudinaryUploadResponse.resource_type
+        });
+        await sentMessage.save();
+
+        conversation.lastMessage = ['image', 'video'].includes(messageType) ? messageType.charAt(0).toUpperCase() + messageType.slice(1) : originalFilename;
+        conversation.lastMessageTimestamp = sentMessage.createdAt;
+        await conversation.save();
+
+        io.to(companyId.toString()).emit('conversation_updated', conversation);
+        io.to(companyId.toString()).emit('new_message', sentMessage);
+        res.status(200).json(sentMessage);
+    } catch (error) {
+        console.error("Error sending media:", error.response ? error.response.data : error);
+        res.status(500).json({ message: 'Failed to send media' });
+    }
+});
 
     // POST to initiate a new conversation with a template
     router.post('/initiate', isAuthenticated, async (req, res) => {
