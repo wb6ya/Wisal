@@ -51,7 +51,7 @@ router.post('/', isAuthenticated, isAdmin, addEmployeeValidationRules, async (re
             return res.status(400).json({ errors: errors.array() });
         }
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, phoneNumber } = req.body;
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Name, email, and password are required.' });
         }
@@ -69,6 +69,7 @@ router.post('/', isAuthenticated, isAdmin, addEmployeeValidationRules, async (re
             name,
             email,
             password,
+            phoneNumber, // <-- 2. حفظ رقم الهاتف في قاعدة البيانات
             role: role || 'agent'
         });
 

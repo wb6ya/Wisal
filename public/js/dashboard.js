@@ -765,24 +765,25 @@ if (messagesArea) {
             const name = document.getElementById('employeeName').value;
             const email = document.getElementById('employeeEmail').value;
             const password = document.getElementById('employeePassword').value;
-            
+            const phoneNumber = document.getElementById('employeePhone').value; // <-- 1. قراءة رقم الهاتف
+
             try {
                 const response = await fetch('/api/employees', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ name, email, password, phoneNumber }) // <-- 2. إرسال رقم الهاتف
                 });
                 if (response.ok) {
-                    loadEmployees(); // إعادة تحميل القائمة
+                    loadEmployees();
                     addEmployeeForm.reset();
                 } else {
                     const errorData = await response.json();
-                    showStatusModal('فشل الإضافة', errorData.message, 'error');
-                    setTimeout(() => hideStatusModal(), 3000);
+                    showStatusModal('فشل إضافة الموظف', errorData.message, 'error');
+                    setTimeout(hideStatusModal, 3000);
                 }
             } catch (error) {
-                showStatusModal('حدث خطأ', error.message || 'An error occurred while adding the employee.', 'error');
-                setTimeout(hideStatusModal, 3000); // إخفاء بعد 3 ثوانٍ
+                showStatusModal('خطأ في الاتصال', 'حدث خطأ أثناء محاولة إضافة الموظف.', 'error');
+                setTimeout(hideStatusModal, 3000);
             }
         });
     }
