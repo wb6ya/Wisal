@@ -78,16 +78,28 @@ module.exports = function(io) {
             
             // FIX: Add proper error handling for template lookup
             if (messageData.type === 'interactive' && messageData.interactive?.type === 'button_reply') {
-                const nextTemplateId = messageData.interactive.button_reply.id;
-                console.log(`[Webhook] Step 5: User clicked a button, next template ID is: ${nextTemplateId}`);
-                if (nextTemplateId) {
-                    try {
+                // ID الرسالة الأصلية التي تحتوي على الأزرار
+                const originalMessageId = messageData.context.id; 
+
+                // ابحث عن الرسالة الأصلية في قاعدة بياناتنا
+                const originalMessage = await Message.findOne({ wabaMessageId: originalMessageId });
+
+                // --- هذا هو التحقق الجديد والمهم ---
+                if (originalMessage && originalMessage.interactiveReplied) {
+                    // إذا كان قد تم الرد عليها من قبل، تجاهل هذا الرد
+                    console.log(`[Webhook] Ignoring duplicate button click for message: ${originalMessageId}`);
+                    templateToSend = null; // امنع إرسال أي قالب
+                } else {
+                    // إذا كانت هذه هي المرة الأولى، ابحث عن القالب التالي
+                    const nextTemplateId = messageData.interactive.button_reply.id;
+                    if (nextTemplateId) {
                         templateToSend = await Template.findById(nextTemplateId);
-                        if (!templateToSend) {
-                            console.log(`[Webhook] Warning: Template with ID ${nextTemplateId} not found`);
-                        }
-                    } catch (error) {
-                        console.error(`[Webhook] Error finding template ${nextTemplateId}:`, error);
+                    }
+
+                    // قم بتحديث الرسالة الأصلية لتسجيل أنه تم الرد عليها
+                    if (originalMessage) {
+                        originalMessage.interactiveReplied = true;
+                        await originalMessage.save();
                     }
                 }
             } else if (shouldTriggerWelcome) {
