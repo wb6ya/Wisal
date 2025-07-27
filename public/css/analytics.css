@@ -28,3 +28,9 @@
     font-weight: 600;
     padding: 1rem 1.5rem;
 }
+.text-muted {
+    color: white !important;
+}
+.card {
+    background-color: #9299d5;
+}

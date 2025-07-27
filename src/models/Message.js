@@ -12,7 +12,8 @@ const messageSchema = new mongoose.Schema({
     status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
     repliedToMessageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
     repliedToMessageContent: { type: String },
-    repliedToMessageSender: { type: String }
+    repliedToMessageSender: { type: String },
+    interactiveReplied: { type: Boolean, default: false }
 }, { timestamps: true });
 
 messageSchema.index({ conversationId: 1, createdAt: 1 });

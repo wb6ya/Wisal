@@ -280,10 +280,12 @@ function openModalForEdit(template) {
             }))
             .filter(btn => btn.title !== '');
 
+        const selectedType = document.querySelector('input[name="templateType"]:checked').value;
+
         const templateData = {
             name: templateNameInput.value,
             text: templateTextInput.value,
-            type: templateTypeInteractiveRadio.checked ? 'interactive' : 'text',
+            type: selectedType,
             buttons: buttons
         };
 

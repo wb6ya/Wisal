@@ -139,12 +139,14 @@ module.exports = function(io) {
                         wabaMessageId: metaMessageId
                     });
                     await botMessage.save();
+
+                     console.log(`[Webhook] Bot message sent. Now checking for special actions. Template type is: "${templateToSend.type}"`);
                     
                     // FIX: Handle template actions properly
                     if (templateToSend.type === 'contact_agent') {
                         console.log(`ACTION: Notifying agents for conversation ${conversation._id}`);
                         // FIX: Comment out until function is implemented
-                        // notifyAgentsViaWhatsApp(companyId, conversation);
+                        notifyAgentsViaWhatsApp(companyId, conversation);
                     }
 
                     if (templateToSend.type === 'resolve_conversation') {
