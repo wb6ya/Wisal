@@ -84,4 +84,76 @@ router.get('/messages-over-time', isAuthenticated, async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/analytics/status-distribution
+ * @desc    Get the distribution of conversation statuses.
+ */
+router.get('/status-distribution', isAuthenticated, async (req, res) => {
+    try {
+        const companyId = new mongoose.Types.ObjectId(req.session.companyId);
+        const statusData = await Conversation.aggregate([
+            { $match: { companyId: companyId } },
+            { $group: {
+                _id: '$status',
+                count: { $sum: 1 }
+            }}
+        ]);
+        res.status(200).json(statusData);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch status distribution data.' });
+    }
+});
+
+/**
+ * @route   GET /api/analytics/peak-hours
+ * @desc    Get the count of incoming messages per hour of the day.
+ */
+router.get('/peak-hours', isAuthenticated, async (req, res) => {
+    try {
+        const companyId = new mongoose.Types.ObjectId(req.session.companyId);
+        const peakHoursData = await Message.aggregate([
+            { $lookup: { from: 'conversations', localField: 'conversationId', foreignField: '_id', as: 'conversation' } },
+            { $unwind: '$conversation' },
+            { $match: { 
+                'conversation.companyId': companyId,
+                'sender': 'customer' 
+            }},
+            { $project: {
+                hour: { $hour: { date: "$createdAt", timezone: "Asia/Riyadh" } } 
+            }},
+            { $group: {
+                _id: '$hour',
+                count: { $sum: 1 }
+            }},
+            { $sort: { '_id': 1 } }
+        ]);
+        res.status(200).json(peakHoursData);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch peak hours data.' });
+    }
+});
+
+/**
+ * @route   GET /api/analytics/ratings-summary
+ * @desc    Get a summary of all customer ratings.
+ */
+router.get('/ratings-summary', isAuthenticated, async (req, res) => {
+    try {
+        const companyId = new mongoose.Types.ObjectId(req.session.companyId);
+        const ratingsData = await Conversation.aggregate([
+            { $match: { 
+                companyId: companyId,
+                rating: { $exists: true, $ne: null } 
+            }},
+            { $group: {
+                _id: '$rating',
+                count: { $sum: 1 }
+            }}
+        ]);
+        res.status(200).json(ratingsData);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch ratings data.' });
+    }
+});
+
 module.exports = router;

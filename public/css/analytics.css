@@ -22,15 +22,15 @@
 }
 
 /* Styles for the chart card */
-.card-chart .card-header {
+.card-chart .card-header{
     background-color: transparent;
     border-bottom: 1px solid var(--border-color);
     font-weight: 600;
     padding: 1rem 1.5rem;
 }
-.text-muted {
+.text-mute,.card-header ,.card-title{
     color: white !important;
 }
 .card {
-    background-color: #9299d5;
+    background-color: #9299d524;
 }
