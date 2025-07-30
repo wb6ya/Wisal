@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { isAuthenticated } = require('../middleware/auth');
 const Company = require('../models/Company');
-const Conversation = require('../models/Conversation');
+const Conversation =require('../models/Conversation');
 const Message = require('../models/Message');
 const Template = require('../models/Template');
 
@@ -65,7 +65,7 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
 });
 
     // POST a text reply to a conversation
-    router.post('/:id/reply', isAuthenticated, async (req, res) => {
+router.post('/:id/reply', isAuthenticated, async (req, res) => {
         try {
             const companyId = req.session.companyId;
             const company = await Company.findById(companyId);
@@ -128,7 +128,7 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
     });
 
     // POST a media file to a conversation
-  router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
+router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), async (req, res) => {
     try {
         const companyId = req.session.companyId;
         const company = await Company.findById(companyId);
@@ -277,11 +277,15 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
 });
 
     // POST to initiate a new conversation with a template
-    router.post('/initiate', isAuthenticated, async (req, res) => {
+router.post('/initiate', isAuthenticated, async (req, res) => {
         try {
             const { customerPhone, templateName } = req.body;
             if (!customerPhone || !templateName) {
                 return res.status(400).json({ message: "Customer phone and template name are required." });
+            }
+
+            if (!Array.isArray(customerPhones) || customerPhones.length === 0 || !templateName) {
+                return res.status(400).json({ message: "Customer phones array and template name are required." });
             }
 
             const company = await Company.findById(req.session.companyId);
@@ -290,15 +294,31 @@ router.get('/:id/messages', isAuthenticated, async (req, res) => {
             }
             
             const whatsappApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`;
-            const apiRequestData = {
-                messaging_product: "whatsapp",
-                to: customerPhone,
-                type: "template",
-                template: { name: templateName, language: { code: "ar" } }
-            };
             const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
-            await axios.post(whatsappApiUrl, apiRequestData, { headers });
-            res.status(200).json({ message: `Template message sent to ${customerPhone}` });
+
+            const sendPromises = customerPhones.map(phone => {
+                const apiRequestData = {
+                    messaging_product: "whatsapp",
+                    to: phone,
+                    type: "template",
+                    template: { name: templateName, language: { code: "ar" } } // Assuming Arabic, can be made dynamic later
+                };
+                return axios.post(whatsappApiUrl, apiRequestData, { headers });
+            });
+           
+            const results = await Promise.allSettled(sendPromises);
+
+            const successfulSends = results.filter(r => r.status === 'fulfilled').length;
+            const failedSends = results.length - successfulSends;
+
+            if (successfulSends === 0) {
+                 return res.status(500).json({ message: `Failed to send template to all ${failedSends} numbers.` });
+            }
+
+            res.status(200).json({ 
+                message: `Process complete. ${successfulSends} sent successfully, ${failedSends} failed.`
+            });
+
         } catch (error) {
             console.error("Error sending template message:", error.response ? error.response.data : error);
             res.status(500).json({ message: 'Failed to send template message' });

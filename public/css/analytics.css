@@ -34,3 +34,9 @@
 .card {
     background-color: #9299d524;
 }
+main.main-content-panel {
+    overflow-y: auto;
+}
+.text-secondary{
+    color: rgba(255, 255, 255, 0.79) !important;
+}

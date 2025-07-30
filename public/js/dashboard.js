@@ -53,7 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusModalSuccessIcon = document.getElementById('statusModalSuccessIcon');
     const statusModalErrorIcon = document.getElementById('statusModalErrorIcon');
     const scrollToBottomBtn = document.getElementById('scrollToBottomBtn');
-
+    const initiateModalEl = document.getElementById('initiateConversationModal');
+    const initiateForm = document.getElementById('initiateConversationForm');
+    const customerNumbersTextarea = document.getElementById('customerNumbers');
+    const initiationTemplateSelect = document.getElementById('initiationTemplate');
+    const sendInitiationBtn = document.getElementById('sendInitiationBtn')
 
     // --- Socket.IO & State Initialization ---
     const socket = io();
@@ -65,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     let isLoadingMessages = false;
     let allMessagesLoaded = false;
+    let allTemplates = [];
 
     // --- 2. Helper Functions ---
     function formatRelativeTime(dateString) {
@@ -78,6 +83,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (minutes < 60) return `منذ ${minutes} دقيقة`;
         if (hours < 24) return `منذ ${hours} ساعة`;
         return new Date(dateString).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+    }
+
+    /**
+     * Fetches all templates and populates the dropdown in the new modal.
+     */
+    async function populateInitiationTemplates() {
+        try {
+            // We can re-use the `allTemplates` variable if it's already fetched,
+            // or fetch again if needed.
+            if (allTemplates.length === 0) {
+                const response = await fetch('/api/templates');
+                if (!response.ok) throw new Error('Failed to fetch templates');
+                allTemplates = await response.json();
+            }
+            
+            // We show all templates here for flexibility.
+            initiationTemplateSelect.innerHTML = '<option value="" selected disabled>-- اختر قالبًا --</option>';
+            allTemplates.forEach(template => {
+                const option = document.createElement('option');
+                option.value = template.name;
+                option.textContent = template.name;
+                initiationTemplateSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error(error);
+            initiationTemplateSelect.innerHTML = '<option value="" selected disabled>فشل تحميل القوالب</option>';
+        }
     }
     
     /**
@@ -259,6 +291,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50); // تأخير بسيط جدًا (50 جزء من الثانية)
         
         if(replyForm) replyForm.classList.remove('d-none');
+    }
+
+    async function loadConversationsAndTemplates() {
+        try {
+            await loadConversations(); // Load conversations first
+            const templatesResponse = await fetch('/api/templates');
+            if (templatesResponse.ok) {
+                allTemplates = await templatesResponse.json();
+            }
+        } catch (error) {
+            console.error("Could not pre-fetch templates:", error);
+        }
     }
 
     async function loadConversations() {
@@ -827,6 +871,68 @@ if (messagesArea) {
             }
         });
     }
+    if (initiateModalEl) {
+        initiateModalEl.addEventListener('show.bs.modal', () => {
+            populateInitiationTemplates();
+        });
+    }
+
+    // Handle form submission for the new modal
+        if (initiateForm) {
+        initiateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const numbersRaw = customerNumbersTextarea.value.trim();
+            const templateName = initiationTemplateSelect.value;
+
+            if (!numbersRaw || !templateName) {
+                showStatusModal('خطأ في الإدخال', 'يرجى إدخال رقم هاتف واحد على الأقل واختيار قالب.', 'error');
+                setTimeout(hideStatusModal, 3000);
+                return;
+            }
+
+            const customerPhones = numbersRaw.split(/[\n,]+/).map(num => num.trim()).filter(Boolean);
+
+            if (customerPhones.length === 0) {
+                showStatusModal('خطأ في الإدخال', 'لم يتم العثور على أرقام هواتف صالحة.', 'error');
+                setTimeout(hideStatusModal, 3000);
+                return;
+            }
+
+            const originalButtonText = sendInitiationBtn.innerHTML;
+            sendInitiationBtn.disabled = true;
+            sendInitiationBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...`;
+
+            try {
+                // The API endpoint for initiating conversations
+                const response = await fetch('/api/conversations/initiate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerPhones, templateName })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'فشل إرسال الرسائل');
+                
+                showStatusModal('تم بنجاح', `تم إرسال القالب إلى ${customerPhones.length} رقم.`, 'success');
+                setTimeout(() => {
+                    hideStatusModal();
+                    // Using Bootstrap's own method to hide the modal
+                    const modalInstance = bootstrap.Modal.getInstance(initiateModalEl);
+                    if(modalInstance) modalInstance.hide();
+                    initiateForm.reset();
+                }, 2000);
+
+            } catch (error) {
+                showStatusModal('فشل الإرسال', error.message, 'error');
+                setTimeout(hideStatusModal, 4000);
+            } finally {
+                sendInitiationBtn.disabled = false;
+                sendInitiationBtn.innerHTML = originalButtonText;
+            }
+        });
+    }
+
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
         // أولاً، قم بتحديث قائمة المحادثات لتعكس الرسالة الأخيرة والوقت
@@ -882,7 +988,7 @@ if (messagesArea) {
     function init() {
          console.log("Step 1: init() function was called.")
         if (document.getElementById('conv-list')) {
-            loadConversations();
+            loadConversationsAndTemplates();
             // loadAnalytics(); // Assuming you have this function
             if ('Notification' in window && Notification.permission !== 'granted') {
                 // You might want to ask for permission on a user action, not on page load

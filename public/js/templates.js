@@ -15,6 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const addNewTemplateBtn = document.getElementById('addNewTemplateBtn');
     const saveTemplateBtn = document.getElementById('saveTemplateBtn');
     const isInitiationOnlyCheckbox = document.getElementById('templateIsInitiationOnly');
+    const statusModalEl = document.getElementById('statusModal');
+    const statusModal = statusModalEl ? new bootstrap.Modal(statusModalEl) : null;
+    const statusModalLabel = document.getElementById('statusModalLabel');
+    const statusModalMessage = document.getElementById('statusModalMessage');
+    const statusModalSpinner = document.getElementById('statusModalSpinner');
+    const statusModalSuccessIcon = document.getElementById('statusModalSuccessIcon');
+    const statusModalErrorIcon = document.getElementById('statusModalErrorIcon');
 
     const buttonFields = [
         { title: document.getElementById('templateButton1Title'), select: document.getElementById('templateButton1NextFlow') },
@@ -106,6 +113,20 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             templatesListDiv.innerHTML = '<p class="text-center text-danger p-5">Failed to load data. Please refresh.</p>';
         }
+    }
+
+    function showStatusModal(title, message = '', type = 'loading') {
+        if (!statusModal) return;
+        statusModalLabel.textContent = title;
+        statusModalMessage.textContent = message;
+        statusModalSpinner.style.display = type === 'loading' ? 'block' : 'none';
+        statusModalSuccessIcon.style.display = type === 'success' ? 'block' : 'none';
+        statusModalErrorIcon.style.display = type === 'error' ? 'block' : 'none';
+        statusModal.show();
+    }
+
+    function hideStatusModal() {
+        if (statusModal) statusModal.hide();
     }
 
     /**

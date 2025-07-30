@@ -63,4 +63,34 @@
     </main>
 </div>
 
+<div class="modal fade" id="initiateConversationModal" tabindex="-1" aria-labelledby="initiateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="initiateModalLabel">إرسال تنبيه سلة متروكة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="initiateConversationForm">
+                    <div class="mb-3">
+                        <label for="customerNumbers" class="form-label">أرقام هواتف العملاء</label>
+                        <textarea class="form-control" id="customerNumbers" rows="4" placeholder="أدخل رقمًا واحدًا، أو الصق قائمة أرقام (كل رقم في سطر أو مفصولة بفاصلة)"></textarea>
+                        <div class="form-text">تأكد من إدخال الأرقام بالصيغة الدولية الكاملة (مثال: 9665xxxxxxx).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="initiationTemplate" class="form-label">اختر قالب الرسالة</label>
+                        <select class="form-select" id="initiationTemplate" required>
+                            <option value="" selected disabled>جاري تحميل القوالب...</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="submit" form="initiateConversationForm" class="btn btn-primary" id="sendInitiationBtn">إرسال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <%- include('partials/modals') %>
