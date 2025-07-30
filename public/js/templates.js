@@ -30,7 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * Checks all button titles for validity and enables/disables the save button.
      */
     function checkFormValidity() {
-        const isInvalid = buttonFields.some(field => field.title.classList.contains('is-invalid'));
+        // Only validate if the buttons container is visible
+        if (buttonsContainer.classList.contains('d-none')) {
+            saveTemplateBtn.disabled = false;
+            return;
+        }
+
+        const isInvalid = buttonFields.some(field =>
+            field.title && field.title.classList.contains('is-invalid')
+        );
         saveTemplateBtn.disabled = isInvalid;
     }
 
@@ -100,38 +108,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
- * Opens the modal and populates it with data from an existing template for editing.
- * @param {object} template - The template object to edit.
- */
-function openModalForEdit(template) {
-    templateForm.reset(); // Clear the form first
-    resetValidation();
-    
-    templateModalLabel.textContent = 'تعديل القالب'; // Change modal title
-    templateIdInput.value = template._id; // IMPORTANT: Set the hidden ID
-    templateNameInput.value = template.name;
-    templateTextInput.value = template.text;
+     * Opens the modal and populates it with data from an existing template for editing.
+     * @param {object} template - The template object to edit.
+     */
+    function openModalForEdit(template) {
+        templateForm.reset(); // Clear the form first
+        resetValidation();
+        
+        templateModalLabel.textContent = 'تعديل القالب'; // Change modal title
+        templateIdInput.value = template._id; // IMPORTANT: Set the hidden ID
+        templateNameInput.value = template.name;
+        templateTextInput.value = template.text;
 
-    const typeRadio = document.querySelector(`input[name="templateType"][value="${template.type}"]`);
-    if(typeRadio) typeRadio.checked = true;
+        const typeRadio = document.querySelector(`input[name="templateType"][value="${template.type}"]`);
+        if(typeRadio) typeRadio.checked = true;
 
-    if (template.type === 'interactive') {
-        templateTypeInteractiveRadio.checked = true;
-        buttonsContainer.classList.remove('d-none');
-        // Populate button fields
-        template.buttons.forEach((button, index) => {
-            if (buttonFields[index]) {
-                buttonFields[index].title.value = button.title;
-                buttonFields[index].select.value = button.nextTemplateId || '';
-                validateButtonTitle(buttonFields[index].title, buttonFields[index].counter);
-            }
-        });
-    } else {
-        buttonsContainer.classList.add('d-none');
+        buttonsContainer.classList.toggle('d-none', template.type !== 'interactive');
+
+        if (template.type === 'interactive') {
+            templateTypeInteractiveRadio.checked = true;
+            buttonsContainer.classList.remove('d-none');
+            // Populate button fields
+            template.buttons.forEach((button, index) => {
+                if (buttonFields[index]) {
+                    buttonFields[index].title.value = button.title;
+                    buttonFields[index].select.value = button.nextTemplateId || '';
+                    validateButtonTitle(buttonFields[index].title, buttonFields[index].counter);
+                }
+            });
+        } else {
+            buttonsContainer.classList.add('d-none');
+        }
+
+        templateModal.show(); // Show the modal
     }
-
-    templateModal.show(); // Show the modal
-}
 
     /**
      * Renders the list of template cards into the DOM.
@@ -377,7 +387,7 @@ function openModalForEdit(template) {
         templateForm.reset();
         resetValidation();
         buttonsContainer.classList.add('d-none');
-        templateTypeTextRadio.checked = true;
+        document.querySelector('input[name="templateType"][value="text"]').checked = true;
     });
 
     // --- 4. Initial Load ---
