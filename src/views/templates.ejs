@@ -64,28 +64,37 @@
                         <div>
                             <div class="form-check form-check-inline">
                          
-       <input class="form-check-input" type="radio" name="templateType" id="templateTypeText" value="text" checked>
+                             <input class="form-check-input" type="radio" name="templateType" id="templateTypeText" value="text" checked>
                                 <label class="form-check-label" for="templateTypeText">نص فقط</label>
                             </div>
-                        
-    <div class="form-check form-check-inline">
+                                                
+                            <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="templateType" id="templateTypeInteractive" value="interactive">
                                 <label class="form-check-label" for="templateTypeInteractive">نص مع أزرار</label>
                      
-       </div>
+                            </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="templateType" id="templateTypeContact" value="contact_agent">
                           
-      <label class="form-check-label" for="templateTypeContact">إعلام الموظفين</label>
+                                <label class="form-check-label" for="templateTypeContact">إعلام الموظفين</label>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input 
-class="form-check-input" type="radio" name="templateType" id="templateTypeResolve" value="resolve_conversation">
+                                    class="form-check-input" type="radio" name="templateType" id="templateTypeResolve" value="resolve_conversation">
                                 <label class="form-check-label" for="templateTypeResolve">حل المحادثة</label>
                             </div>
                         </div>
          
-           </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="templateIsInitiationOnly">
+                            <label class="form-check-label" for="templateIsInitiationOnly">
+                                قالب لبدء محادثة فقط <small class="text-muted">(لن يظهر في قوائم تدفق البوت)</small>
+                            </label>
+                        </div>
+                    </div>
 
                     <div id="buttons-container" class="mb-3 border rounded p-3 d-none">
                         <label class="form-label">الأزرار (3 كحد أقصى)</label>

@@ -43,6 +43,10 @@ const templateSchema = new mongoose.Schema({
     buttons: {
         type: [templateButtonSchema],
         validate: [val => val.length <= 3, 'A template can have a maximum of 3 buttons.']
+    },
+    isInitiationOnly: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

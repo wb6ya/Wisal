@@ -31,7 +31,8 @@ router.post('/', isAuthenticated, async (req, res) => {
         const newTemplate = new Template({
             companyId: req.session.companyId,
             name, text, type,
-            buttons: type === 'interactive' ? buttons : []
+            buttons: type === 'interactive' ? buttons : [],
+            isInitiationOnly: isInitiationOnly || false 
         });
         await newTemplate.save();
         res.status(201).json(newTemplate);
@@ -50,8 +51,8 @@ router.put('/:id', isAuthenticated, async (req, res) => {
         const { name, text, type, buttons } = req.body;
         const updatedTemplate = await Template.findOneAndUpdate(
             { _id: req.params.id, companyId: req.session.companyId }, // Security check
-            { name, text, type, buttons: type === 'interactive' ? buttons : [] },
-            { new: true }
+            { name, text, type, buttons: type === 'interactive' ? buttons : [], isInitiationOnly: isInitiationOnly || false },
+            { new: true, runValidators: true }
         );
         if (!updatedTemplate) {
             return res.status(404).json({ message: 'Template not found.' });

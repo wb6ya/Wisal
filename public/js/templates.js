@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const buttonsContainer = document.getElementById('buttons-container');
     const addNewTemplateBtn = document.getElementById('addNewTemplateBtn');
     const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+    const isInitiationOnlyCheckbox = document.getElementById('templateIsInitiationOnly');
 
     const buttonFields = [
         { title: document.getElementById('templateButton1Title'), select: document.getElementById('templateButton1NextFlow') },
@@ -124,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(typeRadio) typeRadio.checked = true;
 
         buttonsContainer.classList.toggle('d-none', template.type !== 'interactive');
+        isInitiationOnlyCheckbox.checked = template.isInitiationOnly || false;
 
         if (template.type === 'interactive') {
             templateTypeInteractiveRadio.checked = true;
@@ -227,6 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {Array} templates - An array of template objects.
      */
     function populateTemplateDropdowns(templates) {
+        const botFlowTemplates = templates.filter(t => !t.isInitiationOnly);
+
         const optionsHTML = templates.map(t => `<option value="${t._id}">${t.name}</option>`).join('');
         buttonFields.forEach(field => {
             field.select.innerHTML = `<option selected value="">-- اختر التدفق التالي (اختياري) --</option>${optionsHTML}`;
@@ -358,7 +362,8 @@ document.addEventListener('DOMContentLoaded', () => {
             name: templateNameInput.value,
             text: templateTextInput.value,
             type: selectedType,
-            buttons: buttons
+            buttons: buttons,
+            isInitiationOnly: isInitiationOnlyCheckbox.checked 
         };
 
         const url = isEditing ? `/api/templates/${templateId}` : '/api/templates';
