@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const templateTypeInteractiveRadio = document.getElementById('templateTypeInteractive');
     const buttonsContainer = document.getElementById('buttons-container');
     const addNewTemplateBtn = document.getElementById('addNewTemplateBtn');
+    const saveTemplateBtn = document.getElementById('saveTemplateBtn');
 
     const buttonFields = [
         { title: document.getElementById('templateButton1Title'), select: document.getElementById('templateButton1NextFlow') },
@@ -23,8 +24,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allTemplates = []; // To store all templates for the dropdowns
 
-    // --- 2. Main Functions ---
+    // --- 2. Validation Functions (NEW) ---
 
+    /**
+     * Checks all button titles for validity and enables/disables the save button.
+     */
+    function checkFormValidity() {
+        const isInvalid = buttonFields.some(field => field.title.classList.contains('is-invalid'));
+        saveTemplateBtn.disabled = isInvalid;
+    }
+
+    /**
+     * Validates a single button title input field.
+     * @param {HTMLInputElement} inputEl - The input field for the button title.
+     * @param {HTMLElement} counterEl - The small element for displaying the character count.
+     */
+    function validateButtonTitle(inputEl, counterEl) {
+        if (!inputEl || !counterEl) return;
+
+        const maxLength = 20;
+        const currentLength = inputEl.value.trim().length;
+        counterEl.textContent = `${currentLength} / ${maxLength}`;
+
+        if (currentLength > maxLength) {
+            inputEl.classList.add('is-invalid');
+            counterEl.classList.add('text-danger');
+        } else {
+            inputEl.classList.remove('is-invalid');
+            counterEl.classList.remove('text-danger');
+        }
+        checkFormValidity();
+    }
+
+    /**
+     * Resets the validation state for all button fields.
+     */
+    function resetValidation() {
+        buttonFields.forEach(field => {
+            if (field.title && field.counter) {
+                field.title.classList.remove('is-invalid');
+                field.counter.classList.remove('text-danger');
+                field.counter.textContent = '';
+            }
+        });
+        saveTemplateBtn.disabled = false;
+    }
+
+     // --- 3. Main Functions ---
     /**
      * Fetches all templates from the API and renders them on the page.
      */
@@ -59,11 +105,15 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function openModalForEdit(template) {
     templateForm.reset(); // Clear the form first
+    resetValidation();
     
     templateModalLabel.textContent = 'تعديل القالب'; // Change modal title
     templateIdInput.value = template._id; // IMPORTANT: Set the hidden ID
     templateNameInput.value = template.name;
     templateTextInput.value = template.text;
+
+    const typeRadio = document.querySelector(`input[name="templateType"][value="${template.type}"]`);
+    if(typeRadio) typeRadio.checked = true;
 
     if (template.type === 'interactive') {
         templateTypeInteractiveRadio.checked = true;
@@ -73,10 +123,10 @@ function openModalForEdit(template) {
             if (buttonFields[index]) {
                 buttonFields[index].title.value = button.title;
                 buttonFields[index].select.value = button.nextTemplateId || '';
+                validateButtonTitle(buttonFields[index].title, buttonFields[index].counter);
             }
         });
     } else {
-        templateTypeTextRadio.checked = true;
         buttonsContainer.classList.add('d-none');
     }
 
@@ -175,9 +225,11 @@ function openModalForEdit(template) {
 
     // --- 3. Event Listeners ---
 
-// في ملف public/js/templates.js
-
-// في ملف public/js/templates.js
+    buttonFields.forEach(field => {
+        if(field.title) {
+            field.title.addEventListener('input', () => validateButtonTitle(field.title, field.counter));
+        }
+    });
 
     if (botEnabledSwitch) {
         botEnabledSwitch.addEventListener('change', async () => {
@@ -242,9 +294,19 @@ function openModalForEdit(template) {
             buttonsContainer.classList.toggle('d-none', !templateTypeInteractiveRadio.checked);
         });
     });
+    document.querySelectorAll('input[name="templateType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            buttonsContainer.classList.toggle('d-none', radio.value !== 'interactive');
+            // When hiding, reset validation to re-enable save button
+            if (radio.value !== 'interactive') {
+                resetValidation();
+            }
+        });
+    });
 
     addNewTemplateBtn.addEventListener('click', () => {
         templateForm.reset(); // إعادة تعيين كل الحقول
+        resetValidation(); // إعادة تعيين حالة التحقق
         templateIdInput.value = ''; // الأهم: تفريغ حقل الـ ID المخفي
         templateModalLabel.textContent = 'إضافة قالب جديد'; // إعادة تعيين عنوان النافذة
         buttonsContainer.classList.add('d-none'); // إخفاء قسم الأزرار
@@ -313,6 +375,7 @@ function openModalForEdit(template) {
     // Reset form when modal is hidden
     templateModalEl.addEventListener('hidden.bs.modal', () => {
         templateForm.reset();
+        resetValidation();
         buttonsContainer.classList.add('d-none');
         templateTypeTextRadio.checked = true;
     });
