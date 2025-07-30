@@ -1,0 +1,873 @@
+/*
+ * Filename: dashboard.css
+ * Description: A professional "Graphite & Teal" dark theme with full RTL support,
+ *              refined lists, modals, and interactive components.
+ * Author: Google Gemini
+ * Version: 12.0 (Final)
+*/
+
+/* --- 1. Design System & Global Styles --- */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
+:root {
+    --primary-font: 'Tajawal', sans-serif;
+    --body-bg: #1a202c;
+    --background-color: #f0f2f5;
+    --sidebar-bg: #111b21;
+    --panels-bg: #ffffff;
+    --panel-header-bg: #1a202c;
+    --panel-header-border: #3d3e3f;
+    --text-primary: #e2e8f0;
+    --text-secondary: #667781;
+    --text-light: #ffffff;
+    --agent-bubble-bg: #005c4b;
+    --customer-bubble-bg: #2d3748;
+    --link-color: #007bff;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --header-bg: #202631;
+    --accent-color: #00a884;
+    --input-bg: #4a5568;
+    --hover-bg-color: #3d4a5c;
+    --active-list-item-bg: #4a5568;
+    --border-color: #4a5568;
+    --shadow-color: rgba(0, 0, 0, 0.2);
+
+}
+
+body {
+    font-family: var(--primary-font);
+    background-color: var(--background-color);
+    overflow: hidden; /* Prevent body scroll */
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+.app-layout > main,
+.app-layout > section {
+    margin-right: var(--sidebar-width); /* Use right margin for RTL */
+    flex-grow: 1;
+    transition: margin-right var(--sidebar-transition-speed) ease;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+.conversations-panel {
+    margin-right: 0 !important;
+    grid-column: 2;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    background-color: var(--panels-bg);
+    border-right: 1px solid var(--panel-header-border);
+}
+
+.chat-panel {
+    margin-right: 0 !important;;
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: 100vh;
+}
+
+
+/* --- 2. Main Layout & Structure --- */
+.app-layout {
+    display: grid !important;
+    grid-template-columns: 260px 1.5fr 3.5fr;
+    height: 100vh;
+}
+
+
+.conversations-panel, .chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--container-bg);
+    min-width: 0; /* Prevents panel from growing beyond its grid area */
+}
+.conversations-panel {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    padding: 6px 12px;
+}
+
+.btn-icon:hover {
+    background-color: var(--hover-bg-color);
+    color: var(--text-primary);
+}
+
+/* --- 3. Components --- */
+
+/* 3.2 Conversations Panel (Middle) */
+.conversations-panel {
+    border-left: 1px solid var(--border-color);
+    background-color: var(--body-bg); /* Use the darkest background */
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background-color: var(--panel-header-bg);
+    border-bottom: 1px solid var(--panel-header-border);
+    height: 75px;
+}
+.panel-header h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-container {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--panel-header-border);
+}
+
+.search-container .form-control {
+    background-color: var(--input-bg);
+    border-color: transparent;
+    color: var(--text-primary);
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+}
+#replyForm .form-control {
+    border-radius: 20px;
+    border: none;
+    padding: 10px 18px;
+}
+#replyForm .btn {
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+#replyForm #replyButton {
+    color: white;
+    background-color: transparent;
+    border: none;
+}
+#replyForm #replyButton:hover {
+    background-color: var(--accent-color-darker);
+    transform: scale(1.05);  
+}
+#replyForm #attachBtn {
+    background-color: transparent;
+    color: #cbd5da;
+    border: none;
+}
+#replyForm #attachBtn:hover {
+    background-color: var(--hover-bg-color);
+    color: var(--text-primary);
+}
+.search-container .form-control:focus {
+    background-color: var(--body-bg);
+    border-color: var(--accent-color);
+    box-shadow: none;
+    color: var(--text-primary);
+}
+
+.list-group {
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.list-group-item {
+    gap: 15px;
+    transition: background-color 0.2s ease-in-out, border-right-width 0.2s ease;
+    cursor: pointer;
+    border: none;
+    border-bottom: 1px solid #3f3d3d;
+    padding: 12px 16px;
+    background-color: #1a202c;
+}
+
+.list-group-item:hover {
+    background-color: #2e3743
+}
+
+.list-group-item.active {
+    background-color: var(--active-list-item-bg) !important;
+    border-right-width: 4px;
+    border-right-color: var(--accent-color);
+}
+
+.conv-item-details {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.conv-item-details .customer-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 1.05em;
+}
+.conv-item-details .customer-name, p.last-message.text-muted.text-truncate.mb-0.flex-grow-1, div#chat-header-content .ms-3 {
+    margin-right: 10px;
+}
+.conv-item-details .last-message {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 2px; /* Reduced margin */
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.list-group-item:hover .avatar {
+    transform: scale(1.05);
+}
+
+.unread-badge {
+    background-color: var(--accent-color);
+    color: var(--body-bg);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: fadeIn 0.3s ease;
+    margin-right: auto; /* Pushes it to the end in RTL */
+}
+
+/* 3.3 Chat Panel (Left in RTL) */
+.chat-panel {
+    background-color: var(--chat-bg);
+}
+.chat-header {
+    background-color: var(--header-bg);
+    padding: 0 1.5rem; /* Padding on the sides */
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* Prevent it from shrinking */
+    min-height: 75px; /* A taller, more premium header */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.chat-header .avatar {
+    width: 45px;
+    height: 45px;
+    font-size: 1.1rem;
+}
+#chat-header-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+#chat-header-phone {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* Space between action icons */
+}
+.text-muted {
+    --bs-text-opacity: 1;
+    color: rgb(203 208 213 / 92%) !important; 
+}
+/* ابحث عن هذه القاعدة وقم باستبدالها */
+.messages-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    /* --- خلفية بتدرج لوني ناعم --- */
+    background-color: var(--chat-bg);
+    background-image: linear-gradient(to bottom, rgb(32 38 49), rgb(31 47 100));
+}
+.message-content {
+    color: white;
+}
+.messages-area .placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    height: 100%;
+    margin: auto;
+    background-color: transparent;
+    width: 100%;
+    direction: ltr;
+}
+.messages-area .placeholder h4{
+    color: white;
+}
+.placeholder-icon {
+    font-size: 4rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+.reply-area {
+    background-color: var(--header-bg); /* Use the same bg as the header */
+    border-top: 1px solid var(--border-color);
+    padding: 0.75rem 1.25rem;
+    flex-shrink: 0; /* Prevent it from shrinking */
+    transition: background-color 0.3s ease;
+}
+.reply-preview-container {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(0,0,0,0.1);
+}
+.reply-preview-container .quoted-reply {
+    margin-bottom: 0;
+    width: 100%;
+}
+#replyForm {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+#replyMessage {
+    flex-grow: 1;
+    background-color: var(--input-bg);
+    border-radius: 2rem; /* Fully rounded input */
+    border: 1px solid transparent; /* No border by default */
+    color: var(--text-primary);
+    padding: 0.75rem 1.25rem;
+    transition: all 0.2s ease-in-out;
+    resize: none; /* Prevent manual resize */
+    line-height: 1.5;
+    max-height: 120px; /* Limit auto-growth */
+}
+.input-group{
+    background-color: var(--input-bg);
+    border-radius: 2rem; /* Fully rounded input */
+}
+input#replyMessage::placeholder, input#messageSearchInput::placeholder, input#conversationSearch::placeholder {
+    color: #ffffff8a;
+}
+#replyMessage:focus {
+    border-color: var(--accent-color);
+    box-shadow: none;
+    background-color: #606877
+}
+.btn-send {
+    background-color: var(--accent-color);
+    color: white;
+}
+.btn-send:hover {
+    background-color: var(--accent-color-darker);
+    transform: scale(1.05);
+}
+
+/* 3.4 Message Bubbles & Content */
+@keyframes slideUpFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.message-bubble {
+    padding: 8px 12px;
+    border-radius: var(--border-radius-lg);
+    max-width: 70%;
+    width: fit-content;
+    line-height: 1.4;
+    position: relative;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+.customer-message {
+    background-color: var(--customer-bubble-bg);
+    align-self: flex-end;
+    border-bottom-left-radius: 2px;
+}
+.agent-message {
+    background-color: var(--agent-bubble-bg);
+    align-self: flex-start;
+    border-bottom-right-radius: 2px;
+}
+.message-bubble .timestamp {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.message-bubble .quoted-reply {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 8px;
+    border-radius: 8px;
+    margin: -4px -8px 8px -8px; /* Adjust to fit bubble padding */
+    border-left: 3px solid #00a884;
+    cursor: pointer;
+}
+
+.message-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 5px;
+}
+.message-document {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-primary);
+    margin-top: 5px;
+}
+.message-document i {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+}
+.quoted-reply {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-right: 3px solid var(--accent-color); /* RTL */
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.quoted-reply p {
+    font-size: 0.9em;
+    color: #54656f;
+}
+.agent-message .quoted-reply {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.quoted-reply:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+.quoted-reply strong {
+    color: var(--accent-color);
+    display: block;
+    font-style: normal;
+    font-weight: 700;
+}
+img.message-media-img, video.message-media-video {
+    width: 300px;
+}
+.timestamp {
+    font-size: 0.75em;
+    text-align: left; /* RTL */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    float: left; /* RTL */
+}
+.status-ticks[data-status="sent"] { color: #9ea8ae; content: '✓'; }
+.status-ticks[data-status="delivered"] { color: #9ea8ae; content: '✓✓'; }
+.status-ticks[data-status="read"] { color: #53bdeb; content: '✓✓'; }
+.status-ticks[data-status="sent"]::after { content: '✓'; }
+.status-ticks[data-status="delivered"]::after { content: '✓✓'; }
+.status-ticks[data-status="read"]::after { content: '✓✓'; color: #53bdeb; }
+
+.customer-message .timestamp { color: var(--text-secondary); }
+.agent-message .timestamp { color: #a7f3d0; opacity: 0.9; }
+
+.status-ticks {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #a7f3d0;
+    opacity: 0.9;
+    margin-left: 4px;
+}
+.status-ticks[data-status="read"] { color: #53bdeb; }
+.status-ticks::after {
+    content: '✓';
+    margin-right: -0.5em; /* RTL */
+    display: none;
+}
+.status-ticks[data-status="delivered"]::after,
+.status-ticks[data-status="read"]::after {
+    display: inline;
+}
+
+/* 3.5 Modals */
+.modal-content {
+    background-color: var(--modal-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+}
+.modal-header {
+    border-bottom: 1px solid var(--border-color);
+}
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+.modal-body .form-control, .modal-body .form-select {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+.modal-body .form-control:focus, .modal-body .form-select:focus {
+    background-color: var(--container-bg);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 0.25rem rgba(0, 168, 132, 0.25);
+    color: var(--text-primary);
+}
+.modal-body .input-group-text {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+.canned-response-manager {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 2rem;
+}
+.canned-list-container .list-group-item {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+}
+
+/* 3.6 Toast Notifications */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    left: 20px; /* RTL */
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.toast {
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    opacity: 0;
+    transform: translateX(-100%); /* RTL */
+    transition: all 0.4s cubic-bezier(0.215, 0.610, 0.355, 1);
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+.toast-success { background-color: var(--success-color); }
+.toast-error { background-color: var(--error-color); }
+.toast-info { background-color: var(--info-color); }
+
+/* --- 4. Utilities & Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes flash-animation {
+  0% { background-color: rgba(0, 168, 132, 0); }
+  25% { background-color: rgba(0, 168, 132, 0.2); }
+  100% { background-color: rgba(0, 168, 132, 0); }
+}
+.message-bubble.flash {
+    animation: flash-animation 1.2s ease-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--chat-bg); }
+::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+.chat-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Important for layout */
+}
+
+.chat-body .nav-tabs {
+    flex-shrink: 0;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chat-body .nav-tabs .nav-link {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.chat-body .nav-tabs .nav-link.active {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    border-bottom-color: transparent;
+}
+
+.chat-body .tab-content {
+    flex-grow: 1;
+    overflow: hidden; /* The content will handle its own scroll */
+}
+
+.chat-body .tab-pane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-area {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.notes-area textarea {
+    background-color: var(--container-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    resize: none;
+}
+
+/* --- Styles for In-Chat Search --- */
+#messageSearchContainer {
+    max-width: 250px;
+    transition: all 0.3s ease;
+}
+
+#messageSearchContainer .form-control {
+    background-color: var(--input-bg);
+    border-color: transparent;
+    color: var(--text-primary);
+    border-radius: 2rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
+}
+#messageSearchContainer .form-control:focus {
+    background-color: var(--container-bg);
+    border-color: var(--accent-color);
+    box-shadow: none;
+}
+#messageSearchContainer .btn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+}
+
+.message-bubble.highlight {
+    background-color: #553c1a !important; /* A distinct highlight color for dark mode */
+    border: 1px solid #d4a257;
+}
+
+/* --- Styles for Enhanced In-Chat Search --- */
+#messageSearchContainer {
+    max-width: 300px;
+    transition: all 0.3s ease;
+}
+.highlight {
+    background-color: rgba(255, 243, 205, 0.5) !important; /* لون تمييز أفتح */
+}
+.highlight.active-match {
+    background-color: #ffc107 !important; /* لون تمييز أقوى للنتيجة النشطة */
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
+}
+#searchMatchCounter {
+    white-space: nowrap;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.list-group-item:hover .status-indicator {
+    transform: scale(1.3);
+}
+
+.status-new { background-color: #0d6efd; }
+.status-in_progress { background-color: #ffc107; }
+.status-resolved { background-color: #198754; }
+
+.chat-header .dropdown-menu {
+    border-color: var(--border-color);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+.chat-header .dropdown-menu .dropdown-item {
+    color: gray;
+}
+.chat-header .dropdown-menu .dropdown-item:hover {
+    background-color: var(--hover-bg-color);
+}
+.chat-header .dropdown-divider {
+    border-top-color: var(--border-color);
+}
+
+/* =================================
+   5. Media Player & Image Styles
+   ================================= */
+
+/* --- Base container for media --- */
+/* This targets the <a> tag around images and the <video> tag itself */
+.message-content > a,
+.message-content .message-media-video {
+    display: block;
+    position: relative; /* Needed for the play icon overlay on videos */
+    overflow: hidden; /* Ensures border-radius clips the content */
+    border-radius: var(--border-radius-lg); /* Soft rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    max-width: 350px; /* A good max-width for chat media */
+}
+
+/* --- Shared styles for the actual image and video elements --- */
+.message-media-img,
+.message-media-video {
+    display: block; /* Removes extra space below the element */
+    width: 100%;
+    height: auto;
+    transition: transform 0.3s ease;
+}
+
+/* --- Interactive effect for images --- */
+.message-content > a:hover .message-media-img {
+    transform: scale(1.05); /* Slight zoom on hover to indicate it's clickable */
+}
+
+/* --- Elegant overlay for videos --- */
+.message-media-video-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.message-media-video-wrapper::before {
+    content: '\F4F4'; /* Play Circle Fill icon from Bootstrap Icons */
+    font-family: 'bootstrap-icons';
+    font-size: 3.5rem; /* Icon size */
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+
+    /* Center the icon */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    pointer-events: none; /* Allows clicks to pass through to the video */
+    transition: opacity 0.3s ease;
+    opacity: 1;
+}
+
+/* Hide the play icon when the video is playing */
+/* This is a CSS trick, JS would be needed for perfect ' :playing ' state */
+.message-media-video-wrapper:hover::before,
+.message-media-video-wrapper:focus-within::before {
+    opacity: 0;
+}
+
+/* --- 5. Responsive Design --- */
+@media (max-width: 1200px) {
+    .app-layout {
+        /* Give more space to the chat panel on medium screens */
+        grid-template-columns: 260px 2.5fr 5.5fr;
+    }
+}
+
+@media (max-width: 992px) {
+    .app-layout {
+        /* Make sidebar smaller and give chat more space */
+        grid-template-columns: 200px 3fr 6fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .app-layout {
+        /* On small screens, show only the sidebar and the active panel */
+        grid-template-columns: 1fr;
+    }
+
+    .conversations-panel {
+        /* Hide the conversations list by default on mobile */
+        display: none;
+    }
+    
+    .chat-panel {
+        /* Take up the full view if a chat is active */
+        display: flex;
+    }
+
+    /* You would need JS to toggle between conversations and chat view,
+       but this CSS sets up the responsive structure. */
+}
+/* --- Scroll to Bottom Button --- */
+#scrollToBottomBtn {
+    position: absolute;
+    bottom: 85px; /* Adjust this value to position it above the reply area */
+    left: 25px; /* Adjust for RTL */
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    z-index: 100;
+
+    /* Start hidden and fade in/out smoothly */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+}
+
+#scrollToBottomBtn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}

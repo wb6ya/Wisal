@@ -1,0 +1,36 @@
+/* public/css/analytics.css */
+/* هذا الملف يحتوي فقط على التنسيقات الخاصة بصفحة التحليلات */
+
+.analytics-panel .panel-header h4 {
+    font-weight: 600;
+}
+
+/* Adds a subtle animation to the content appearing */
+#analytics-content {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Styles for the chart card */
+.card-chart .card-header{
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+.text-mute,.card-header ,.card-title{
+    color: white !important;
+}
+.card {
+    background-color: #9299d524;
+}

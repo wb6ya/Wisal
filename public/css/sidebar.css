@@ -1,0 +1,151 @@
+/* === public/css/sidebar.css === */
+
+/* --- Root Variables for a Professional Sidebar --- */
+:root {
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 80px;
+    --sidebar-bg: #232733;
+    --sidebar-border-color: #3a3f51;
+    --sidebar-text-primary: #e0e0e0;
+    --sidebar-text-secondary: #9a9fae;
+    --sidebar-accent-primary: #4a72ff;
+    --sidebar-link-hover-bg: rgba(74, 114, 255, 0.1);
+    --sidebar-transition-speed: 0.3s;
+}
+
+/* --- Main App Layout --- */
+.app-layout {
+    display: flex;
+    direction: rtl; /* Ensure layout context is RTL */
+}
+
+/* --- Sidebar Container --- */
+.main-sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    right: 0; /* Position on the right for RTL */
+    display: flex;
+    flex-direction: column;
+    background-color: var(--sidebar-bg);
+    border-left: 1px solid var(--sidebar-border-color); /* Use left border for RTL */
+    transition: width var(--sidebar-transition-speed) ease;
+    z-index: 1000;
+}
+
+/* Adjust main content to not be overlapped by the sidebar */
+.app-layout > main,
+.app-layout > section {
+    margin-right: var(--sidebar-width); /* Use right margin for RTL */
+    flex-grow: 1;
+    transition: margin-right var(--sidebar-transition-speed) ease;
+}
+
+
+
+/* --- Sidebar Header --- */
+.sidebar-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--sidebar-border-color);
+    flex-shrink: 0;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--sidebar-text-primary);
+    text-decoration: none;
+    transition: color var(--sidebar-transition-speed) ease;
+}
+
+.sidebar-brand:hover {
+    color: var(--sidebar-accent-primary);
+}
+
+.sidebar-brand i {
+    font-size: 1.8rem;
+    margin-left: 0.75rem; /* Use left margin for RTL */
+}
+
+/* --- Sidebar Navigation --- */
+.sidebar-nav {
+    flex-grow: 1;
+    padding: 1rem 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1.5rem;
+    color: var(--sidebar-text-secondary);
+    font-weight: 500;
+    transition: background-color var(--sidebar-transition-speed) ease, color var(--sidebar-transition-speed) ease;
+    white-space: nowrap;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: var(--sidebar-link-hover-bg);
+    color: var(--sidebar-text-primary);
+}
+
+.sidebar-nav .nav-link.active {
+    background-color: var(--sidebar-link-hover-bg);
+    color: var(--sidebar-accent-primary);
+    font-weight: 600;
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1.25rem;
+    min-width: 2rem; /* Ensures icons are aligned when sidebar is collapsed */
+    text-align: center;
+    margin-left: 1rem; /* Use left margin for RTL */
+    transition: margin var(--sidebar-transition-speed) ease;
+}
+
+/* --- Sidebar Footer --- */
+.sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--sidebar-border-color);
+    flex-shrink: 0;
+}
+
+.sidebar-footer .avatar-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    background-color: #4a5568;
+    margin-left: 0.75rem; /* Use left margin for RTL */
+}
+
+/* --- Responsive Collapse --- */
+@media (max-width: 992px) {
+    .main-sidebar {
+        width: var(--sidebar-width-collapsed);
+    }
+
+    .app-layout > main,
+    .app-layout > section {
+        margin-right: var(--sidebar-width-collapsed); /* Adjust margin for collapsed state */
+    }
+
+    .sidebar-brand span,
+    .sidebar-nav .nav-link span,
+    .sidebar-footer .flex-grow-1 {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.1s ease;
+    }
+
+    .sidebar-nav .nav-link i {
+        margin-left: 0;
+    }
+}

@@ -1,0 +1,66 @@
+<div class="app-layout">
+    <%- include('partials/sidebar', { user: user, activePage: 'dashboard' }) %>
+
+    <section class="conversations-panel">
+        <header class="panel-header">
+            <h4 class="mb-0">المحادثات</h4>
+            <div class="panel-actions">
+                <button class="btn btn-icon" data-bs-toggle="modal" data-bs-target="#newChatModal"><i class="bi bi-plus-lg"></i></button>
+            </div>
+        </header>
+        <div class="list-group list-group-flush" id="conv-list">
+            </div>
+    </section>
+
+    <main class="chat-panel">
+        <header class="chat-header">
+            <div id="chat-header-content" class="d-flex align-items-center" style="visibility: hidden;">
+                <div id="chat-header-avatar" class="avatar"></div>
+                <div class="ms-3">
+                    <h5 id="chat-header-name" class="mb-0 fw-bold"></h5>
+                    <small id="chat-header-phone" class="text-muted"></small>
+                </div>
+            </div>
+            <div class="chat-header-actions d-flex align-items-center">
+                <div id="messageSearchContainer" class="input-group d-none me-2 align-items-center">
+                    <input type="text" id="messageSearchInput" class="form-control form-control-sm" placeholder="ابحث في الرسائل...">
+                    <span id="searchMatchCounter" class="text-muted small ms-2"></span>
+                    <button id="searchPrevBtn" class="btn btn-sm btn-icon" type="button" title="السابق"><i class="bi bi-chevron-up"></i></button>
+                    <button id="searchNextBtn" class="btn btn-sm btn-icon" type="button" title="التالي"><i class="bi bi-chevron-down"></i></button>
+                    <button id="closeSearchBtn" class="btn btn-sm btn-icon" type="button" title="إغلاق"><i class="bi bi-x-lg"></i></button>
+                </div>
+                <i id="searchIcon" class="bi bi-search btn-icon" title="بحث في المحادثة"></i> 
+                <div class="chat-header-actions dropdown">
+                    <i class="bi bi-three-dots btn-icon" data-bs-toggle="dropdown" aria-expanded="false" title="خيارات"></i>
+                    <ul class="dropdown-menu dropdown-menu-end"> 
+                        <li><a class="dropdown-item status-change-item" href="#" data-status="new">جديدة</a></li>
+                        <li><a class="dropdown-item status-change-item" href="#" data-status="in_progress">قيد التنفيذ</a></li>
+                        <li><a class="dropdown-item status-change-item" href="#" data-status="resolved">تم حلها</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="notesBtn" data-bs-toggle="modal" data-bs-target="#notesModal">الملاحظات</a></li>
+                    </ul> 
+                </div>
+            </div>
+        </header>
+        <div class="messages-area">
+            <div class="placeholder">
+                <h4>اختر محادثة لعرض الرسائل</h4>
+            </div>
+        </div>
+        <button id="scrollToBottomBtn" class="btn btn-primary rounded-circle shadow" title="النزول للأسفل">
+            <i class="bi bi-arrow-down"></i>
+        </button>
+        <footer class="reply-area">
+            <form id="replyForm" class="d-none">
+                <div class="input-group">
+                    <input type="file" id="mediaUpload" style="display:none;">
+                    <button class="btn btn-light" type="button" id="attachBtn"><i class="bi bi-paperclip"></i></button>
+                    <input type="text" id="replyMessage" class="form-control" placeholder="اكتب رسالتك هنا...">
+                    <button type="submit" class="btn btn-primary" id="replyButton"><i class="bi bi-send-fill"></i></button>
+                </div>
+            </form>
+        </footer>
+    </main>
+</div>
+
+<%- include('partials/modals') %>

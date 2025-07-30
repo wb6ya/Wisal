@@ -1,0 +1,56 @@
+<aside class="main-sidebar">
+    <header class="sidebar-header">
+        <a href="/dashboard" class="sidebar-brand"><i class="bi bi-whatsapp"></i><span>Wisal</span></a>
+    </header>
+    <nav class="sidebar-nav">
+        <ul class="sidebar-nav">
+            <li class="nav-item">
+                <a href="/dashboard" class="nav-link <%= activePage === 'dashboard' ? 'active' : '' %>">
+                    <i class="bi bi-chat-left-text-fill"></i><span>الرسائل</span>
+                </a>
+            </li>
+            <% if (user.role === 'Admin') { %>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#employeesModal">
+                    <i class="bi bi-person-badge-fill"></i><span>إدارة الموظفين</span>
+                </a>
+            </li>
+            <% } %>
+            <li class="nav-item">
+                <a href="/customers" class="nav-link <%= activePage === 'customers' ? 'active' : '' %>">
+                    <i class="bi bi-people-fill"></i><span>العملاء</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/analytics" class="nav-link <%= activePage === 'analytics' ? 'active' : '' %>">
+                    <i class="bi bi-bar-chart-line-fill"></i><span>التقارير</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/templates" class="nav-link <%= activePage === 'templates' ? 'active' : '' %>">
+                    <i class="bi bi-files"></i>
+                    <span>القوالب</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <footer class="sidebar-footer">
+        <div class="dropup">
+            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="avatar-sm"><%= user.name.charAt(0).toUpperCase() %></div>
+                <div class="flex-grow-1 overflow-hidden">
+                    <strong class="text-truncate d-block"><%= user.name %></strong>
+                    <small class="text-muted"><%= user.role %></small>
+                </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
+                <% if (user.role === 'Admin') { %>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#employeesModal">إدارة الموظفين</a></li>
+                <% } %>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">الإعدادات</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="/api/logout">تسجيل الخروج</a></li>
+            </ul>
+        </div>
+    </footer>
+</aside>

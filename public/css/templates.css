@@ -1,0 +1,62 @@
+/*
+ * Filename: templates.css
+ * Description: Specific styles for the Templates Management page.
+*/
+
+/* --- Page Header --- */
+.main-content-panel .panel-header {
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* --- Template Card Styling --- */
+/* The main .card styles are inherited from main.css */
+
+.card .card-title {
+    font-weight: 600; /* Make the template name stand out */
+    color: var(--text-primary);
+}
+
+/* Styles for the list of buttons inside a card */
+.card .list-group {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.card .list-group-item {
+    background-color: var(--input-bg);
+    border-color: var(--border-color) !important;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.card .list-group-item .badge {
+    font-weight: normal;
+    background-color: var(--body-bg) !important;
+    color: var(--text-secondary);
+}
+
+.card .card-footer {
+    background-color: transparent !important;
+    border-top: 1px solid var(--border-color);
+    padding: 0.75rem 1.25rem;
+}
+
+
+/* --- Modal Form Styling --- */
+#buttons-container {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: var(--border-color) !important;
+    transition: all 0.3s ease-in-out;
+}
+
+#buttons-container .row {
+    align-items: center;
+}
+
+#buttons-container .form-select {
+    background-color: var(--container-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}

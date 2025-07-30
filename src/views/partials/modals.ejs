@@ -1,0 +1,250 @@
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">إعدادات ربط واتساب</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                    <div class="modal-body p-4">
+                        <form id="settingsForm">  
+                            <div class="mb-3">
+                                <label for="accessToken" class="form-label">Access Token</label>
+                                <input type="password" class="form-control" id="accessToken" value="<%= company.whatsapp?.accessToken || '' %>" required autocomplete="new-password">
+                                <div class="form-text">هذا هو مفتاح الوصول المؤقت من تطبيق Meta الخاص بك.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phoneNumberId" class="form-label">Phone Number ID</label>
+                                <input type="text" class="form-control" id="phoneNumberId" value="<%= company.whatsapp?.phoneNumberId || '' %>" required>
+                                <div class="form-text">معرّف رقم الهاتف الذي سترسل منه الرسائل.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="verifyToken" class="form-label">Verify Token</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="verifyToken" value="<%= company.whatsapp?.verifyToken || '' %>" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="generateTokenBtn" title="Generate a new random token">إنشاء</button>
+                                </div>
+                                <div class="form-text">كلمة سر من اختيارك للتحقق من الـ Webhook. اضغط "إنشاء" لعمل واحدة عشوائية.</div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="webhookUrl" class="form-label">Your Webhook URL</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light" id="webhookUrl" value="<%= webhookUrl %>" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" id="copyWebhookBtn" title="نسخ"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                                <div class="form-text">استخدم هذا الرابط في إعدادات Webhook داخل تطبيق Meta الخاص بك.</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <div id="formMessage" class="me-auto text-success"></div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="submit" form="settingsForm" class="btn btn-primary">حفظ الإعدادات</button>
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newChatModalLabel">بدء محادثة جديدة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newChatForm">
+                        <div class="mb-3">
+                            <label for="customerPhoneInput" class="form-label">رقم هاتف العميل (مع رمز الدولة)</label>
+                            <input type="tel" class="form-control" id="customerPhoneInput" placeholder="e.g., 9665xxxxxxxx" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateNameInput" class="form-label">اسم قالب الرسالة</label>
+                            <input type="text" class="form-control" id="templateNameInput" value="hello_world" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">إرسال القالب</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cannedResponseModal" tabindex="-1" aria-labelledby="cannedResponseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cannedResponseModalLabel">إدارة الردود السريعة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="canned-response-manager">
+                        <div class="canned-form-container">
+                            <h6 class="mb-3">إضافة رد جديد</h6>
+                            <form id="addCannedResponseForm">
+                                <div class="mb-3">
+                                    <label for="cannedShortcut" class="form-label">الاختصار (e.g. /thanks)</label>
+                                    <input type="text" class="form-control" id="cannedShortcut" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cannedMessage" class="form-label">نص الرسالة</label>
+                                    <textarea class="form-control" id="cannedMessage" rows="4" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">إضافة الرد</button>
+                            </form>
+                        </div>
+                        <div class="canned-list-container">
+                            <h6 class="mb-3">الردود المحفوظة</h6>
+                            <div class="list-group" id="cannedResponsesList">
+                                <p class="text-muted text-center" id="canned-list-placeholder">لا توجد ردود محفوظة.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="notesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">ملاحظات العميل</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <textarea id="customerNotes" class="form-control" rows="10" placeholder="اكتب ملاحظاتك الخاصة عن هذا العميل هنا..."></textarea>
+                            <div id="notesStatus" class="form-text mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" id="saveNotesBtn" class="btn btn-primary">حفظ الملاحظات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="employeesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">إدارة الموظفين</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-5">
+                        <div class="col-md-5 border-end">
+                            <h6 class="mb-3">إضافة موظف جديد</h6>
+                            <form id="addEmployeeForm">
+                                <div class="mb-3">
+                                    <label for="employeeName" class="form-label">اسم الموظف</label>
+                                    <input type="text" class="form-control" id="employeeName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="employeeEmail" class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" class="form-control" id="employeeEmail" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="employeePhone" class="form-label">رقم الواتساب (مع رمز الدولة)</label>
+                                    <input type="tel" class="form-control" id="employeePhone" placeholder="e.g., 9665xxxxxxxx">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="employeePassword" class="form-label">كلمة المرور</label>
+                                    <input type="password" class="form-control" id="employeePassword" name="phoneNumber" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">إضافة موظف</button>
+                            </form>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="mb-3">الموظفون الحاليون</h6>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>الاسم</th>
+                                            <th>البريد الإلكتروني</th>
+                                            <th class="text-end">إجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeesTableBody">
+                                        </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-content tab-content">
+        <div class="tab-pane fade show active h-100" id="chat-pane" role="tabpanel">
+            </div>
+
+        <div class="tab-pane fade h-100" id="analytics-pane" role="tabpanel">
+            <div class="panel-header">
+                <h4 class="mb-0">لوحة التحليلات</h4>
+            </div>
+            <div class="p-4 overflow-auto">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">إجمالي المحادثات</h6>
+                                <p class="card-text fs-2 fw-bold" id="totalConversationsStat">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">إجمالي الرسائل</h6>
+                                <p class="card-text fs-2 fw-bold" id="totalMessagesStat">0</p>
+                                <small class="text-muted" id="messageBreakdownStat">0 واردة / 0 صادرة</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">محادثات جديدة (آخر 7 أيام)</h6>
+                                <p class="card-text fs-2 fw-bold" id="newConversationsStat">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div id="statusModalSpinner" class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="modal-title" id="statusModalLabel">جاري التحميل...</h5>
+                <p id="statusModalMessage" class="text-secondary mb-0 mt-2"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div id="statusModalSpinner" class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <i id="statusModalSuccessIcon" class="bi bi-check-circle-fill text-success fs-1 mb-3" style="display: none;"></i>
+                <i id="statusModalErrorIcon" class="bi bi-x-circle-fill text-danger fs-1 mb-3" style="display: none;"></i>
+
+                <h5 class="modal-title" id="statusModalLabel">جاري التحميل...</h5>
+                <p id="statusModalMessage" class="text-secondary mb-0 mt-2"></p>
+            </div>
+        </div>
+    </div>
+</div>
