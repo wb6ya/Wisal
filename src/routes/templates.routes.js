@@ -24,19 +24,24 @@ router.get('/', isAuthenticated, async (req, res) => {
  */
 router.post('/', isAuthenticated, async (req, res) => {
     try {
-        const { name, text, type, buttons } = req.body;
+        // --- THE FIX IS HERE: Added 'isInitiationOnly' ---
+        const { name, text, type, buttons, isInitiationOnly } = req.body;
+        
         if (!name || !text || !type) {
             return res.status(400).json({ message: 'Name, text, and type are required.' });
         }
         const newTemplate = new Template({
             companyId: req.session.companyId,
-            name, text, type,
+            name,
+            text,
+            type,
             buttons: type === 'interactive' ? buttons : [],
-            isInitiationOnly: isInitiationOnly || false 
+            isInitiationOnly: isInitiationOnly || false
         });
         await newTemplate.save();
         res.status(201).json(newTemplate);
     } catch (error) {
+        console.error("Error creating template:", error);
         res.status(500).json({ message: 'Server error while creating template.' });
     }
 });
@@ -48,10 +53,18 @@ router.post('/', isAuthenticated, async (req, res) => {
  */
 router.put('/:id', isAuthenticated, async (req, res) => {
     try {
-        const { name, text, type, buttons } = req.body;
+        // --- THE FIX IS HERE: Added 'isInitiationOnly' ---
+        const { name, text, type, buttons, isInitiationOnly } = req.body;
+        
         const updatedTemplate = await Template.findOneAndUpdate(
-            { _id: req.params.id, companyId: req.session.companyId }, // Security check
-            { name, text, type, buttons: type === 'interactive' ? buttons : [], isInitiationOnly: isInitiationOnly || false },
+            { _id: req.params.id, companyId: req.session.companyId },
+            { 
+                name, 
+                text, 
+                type, 
+                buttons: type === 'interactive' ? buttons : [],
+                isInitiationOnly: isInitiationOnly || false
+            },
             { new: true, runValidators: true }
         );
         if (!updatedTemplate) {
@@ -59,6 +72,7 @@ router.put('/:id', isAuthenticated, async (req, res) => {
         }
         res.status(200).json(updatedTemplate);
     } catch (error) {
+        console.error("Error updating template:", error);
         res.status(500).json({ message: 'Server error while updating template.' });
     }
 });
@@ -72,7 +86,7 @@ router.delete('/:id', isAuthenticated, async (req, res) => {
     try {
         const deletedTemplate = await Template.findOneAndDelete({ 
             _id: req.params.id, 
-            companyId: req.session.companyId // Security check
+            companyId: req.session.companyId
         });
         if (!deletedTemplate) {
             return res.status(404).json({ message: 'Template not found.' });

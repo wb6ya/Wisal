@@ -279,11 +279,10 @@ router.post('/:id/send-media', isAuthenticated, upload.single('mediaFile'), asyn
     // POST to initiate a new conversation with a template
 router.post('/initiate', isAuthenticated, async (req, res) => {
         try {
-            const { customerPhone, templateName } = req.body;
-            if (!customerPhone || !templateName) {
-                return res.status(400).json({ message: "Customer phone and template name are required." });
-            }
+            // --- UPDATED: Cleaned up to only accept an array of phones ---
+            const { customerPhones, templateName } = req.body;
 
+            // New validation for the array of phone numbers
             if (!Array.isArray(customerPhones) || customerPhones.length === 0 || !templateName) {
                 return res.status(400).json({ message: "Customer phones array and template name are required." });
             }
@@ -296,32 +295,38 @@ router.post('/initiate', isAuthenticated, async (req, res) => {
             const whatsappApiUrl = `https://graph.facebook.com/${process.env.META_API_VERSION}/${company.whatsapp.phoneNumberId}/messages`;
             const headers = { 'Authorization': `Bearer ${company.whatsapp.accessToken}` };
 
+            // Create an array of promises to send all messages concurrently for better performance
             const sendPromises = customerPhones.map(phone => {
                 const apiRequestData = {
                     messaging_product: "whatsapp",
                     to: phone,
                     type: "template",
-                    template: { name: templateName, language: { code: "ar" } } // Assuming Arabic, can be made dynamic later
+                    template: { name: templateName, language: { code: "ar" } }
                 };
                 return axios.post(whatsappApiUrl, apiRequestData, { headers });
             });
            
+            // Wait for all messages to be sent, regardless of success or failure
             const results = await Promise.allSettled(sendPromises);
 
             const successfulSends = results.filter(r => r.status === 'fulfilled').length;
             const failedSends = results.length - successfulSends;
+
+            console.log(`Broadcast finished. Successful: ${successfulSends}, Failed: ${failedSends}`);
 
             if (successfulSends === 0) {
                  return res.status(500).json({ message: `Failed to send template to all ${failedSends} numbers.` });
             }
 
             res.status(200).json({ 
-                message: `Process complete. ${successfulSends} sent successfully, ${failedSends} failed.`
+                message: `Process complete. ${successfulSends} sent successfully, ${failedSends} failed.`,
+                successfulSends,
+                failedSends
             });
 
         } catch (error) {
-            console.error("Error sending template message:", error.response ? error.response.data : error);
-            res.status(500).json({ message: 'Failed to send template message' });
+            console.error("Error initiating conversation:", error.response ? error.response.data : error);
+            res.status(500).json({ message: 'A server error occurred while sending template messages.' });
         }
     });
 
