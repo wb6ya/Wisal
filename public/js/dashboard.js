@@ -1038,14 +1038,22 @@ if (initiateForm) {
     }, 100);
 
     // --- 7. Initial Page Load ---
-    function init() {
-         console.log("Step 1: init() function was called.")
+    async function init() {
         if (document.getElementById('conv-list')) {
-            loadConversationsAndTemplates();
-            // loadAnalytics(); // Assuming you have this function
-            if ('Notification' in window && Notification.permission !== 'granted') {
-                // You might want to ask for permission on a user action, not on page load
-                // Notification.requestPermission();
+            // Step 1: Wait for the conversation list to finish loading
+            await loadConversationsAndTemplates();
+
+            // Step 2: After loading, check if a conversation ID exists in the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const conversationToOpenId = urlParams.get('convId');
+
+            if (conversationToOpenId) {
+                // Step 3: Find the specific conversation element on the page
+                const convElement = document.querySelector(`.list-group-item[data-id="${conversationToOpenId}"]`);
+                if (convElement) {
+                    // Step 4: Simulate a click to open and display the conversation
+                    convElement.click();
+                }
             }
         }
     }
