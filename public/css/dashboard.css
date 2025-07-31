@@ -898,3 +898,6 @@ img.message-media-img, video.message-media-video {
 .message-bubble.flash {
     animation: flash-animation 1.2s ease-out;
 }
+.input-group{
+    align-items: center;
+}

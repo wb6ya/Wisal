@@ -442,6 +442,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+if (replyMessageInput) { // replyMessageInput is now the textarea
+    const initialHeight = replyMessageInput.scrollHeight;
+
+    replyMessageInput.addEventListener('input', () => {
+        replyMessageInput.style.height = 'auto';
+        replyMessageInput.style.height = `${replyMessageInput.scrollHeight}px`;
+    });
+
+    replyMessageInput.addEventListener('keydown', (e) => {
+        // Submit form on Enter, but allow new line with Shift+Enter
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Prevents adding a new line
+            
+            // Check if the input is not just whitespace before submitting
+            if (replyMessageInput.value.trim() !== '') {
+                 replyForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        }
+    });
+
+    // Reset height when form is submitted or cleared
+    replyForm.addEventListener('submit', () => {
+        setTimeout(() => {
+            replyMessageInput.style.height = `${initialHeight}px`;
+        }, 0);
+    });
+}
     
 if (messagesArea) {
     messagesArea.addEventListener('scroll', () => {
