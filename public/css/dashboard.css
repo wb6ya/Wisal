@@ -871,3 +871,30 @@ img.message-media-img, video.message-media-video {
     visibility: visible;
     transform: translateY(0);
 }
+.message-bubble.highlight {
+    background-color: #fcf8e3; /* A light yellow highlight for all matches */
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.message-bubble.active-match {
+    background-color: #f8e4a0; /* A darker yellow for the currently selected match */
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7);
+    transform: scale(1.01);
+}
+
+.message-content {
+    /* Ensures content doesn't get cut off by styling */
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* A small animation for when jumping to a quoted message */
+@keyframes flash-animation {
+    0% { background-color: #e7f3ff; }
+    100% { background-color: transparent; }
+}
+
+.message-bubble.flash {
+    animation: flash-animation 1.2s ease-out;
+}

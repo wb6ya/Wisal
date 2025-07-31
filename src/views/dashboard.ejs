@@ -69,15 +69,15 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="initiateModalLabel">إرسال تنبيه سلة متروكة</h5>
+                <h5 class="modal-title" id="initiateModalLabel">إرسال تنبيه</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="initiateConversationForm">
                     <div class="mb-3">
-                        <label for="customerNumbers" class="form-label">أرقام هواتف العملاء</label>
-                        <textarea class="form-control" id="customerNumbers" rows="4" placeholder="أدخل رقمًا واحدًا، أو الصق قائمة أرقام (كل رقم في سطر أو مفصولة بفاصلة)"></textarea>
-                        <div class="form-text">تأكد من إدخال الأرقام بالصيغة الدولية الكاملة (مثال: 9665xxxxxxx).</div>
+                        <label for="customerNumbersInput" class="form-label">أرقام هواتف العملاء</label>
+                        <input id="customerNumbersInput" class="form-control" placeholder="اكتب رقمًا واضغط Enter، أو الصق قائمة أرقام">
+                        <div class="form-text">سيتم التحقق من الأرقام تلقائيًا.</div>
                     </div>
                     <div class="mb-3">
                         <label for="initiationTemplate" class="form-label">اختر قالب الرسالة</label>
@@ -96,3 +96,7 @@
 </div>
 
 <%- include('partials/modals') %>
+
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify"></script>
+<script src="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.polyfills.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />

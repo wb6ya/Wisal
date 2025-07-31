@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoadingMessages = false;
     let allMessagesLoaded = false;
     let allTemplates = [];
+    let tagify;
 
     // --- 2. Helper Functions ---
     function formatRelativeTime(dateString) {
@@ -85,27 +86,53 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(dateString).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
     }
 
+    if (customerNumbersInput) {
+        // Initialize Tagify on the input field
+        tagify = new Tagify(customerNumbersInput, {
+            pattern: /^\+?[1-9]\d{10,14}$/, // Simple regex for international phone numbers
+            delimiters: ",|\n|\t",        // Create tags on comma, newline, or tab
+            pasteAsTags: true,             // Automatically parse pasted text into tags
+            trim: true,                    // Trim whitespace
+            maxTags: 100,                  // Set a reasonable limit
+            dropdown: {
+                enabled: 0                 // Disable the suggestions dropdown
+            },
+            enforceWhitelist: false        // Allow numbers that are not in a whitelist
+        });
+
+        // Add a listener for invalid tags to give user feedback
+        tagify.on('invalid', (e) => {
+            console.log("Invalid tag:", e.detail);
+        });
+    }
+
     /**
      * Fetches all templates and populates the dropdown in the new modal.
      */
     async function populateInitiationTemplates() {
         try {
-            // We can re-use the `allTemplates` variable if it's already fetched,
-            // or fetch again if needed.
             if (allTemplates.length === 0) {
                 const response = await fetch('/api/templates');
                 if (!response.ok) throw new Error('Failed to fetch templates');
                 allTemplates = await response.json();
             }
             
-            // We show all templates here for flexibility.
-            initiationTemplateSelect.innerHTML = '<option value="" selected disabled>-- اختر قالبًا --</option>';
-            allTemplates.forEach(template => {
-                const option = document.createElement('option');
-                option.value = template.name;
-                option.textContent = template.name;
-                initiationTemplateSelect.appendChild(option);
-            });
+            // **NEW**: Filter templates to only show those marked as "initiation only"
+            const initiationTemplates = allTemplates.filter(t => t.isInitiationOnly);
+
+            initiationTemplateSelect.innerHTML = ''; // Clear existing options
+            
+            if (initiationTemplates.length === 0) {
+                initiationTemplateSelect.innerHTML = '<option value="" selected disabled>لا توجد قوالب مخصصة لبدء محادثة</option>';
+            } else {
+                initiationTemplateSelect.innerHTML = '<option value="" selected disabled>-- اختر قالبًا --</option>';
+                initiationTemplates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.name;
+                    option.textContent = template.name;
+                    initiationTemplateSelect.appendChild(option);
+                });
+            }
         } catch (error) {
             console.error(error);
             initiationTemplateSelect.innerHTML = '<option value="" selected disabled>فشل تحميل القوالب</option>';
@@ -614,27 +641,20 @@ if (messagesArea) {
 
     if (searchIcon) {
         searchIcon.addEventListener('click', () => {
-            if(messageSearchContainer) {
-                messageSearchContainer.classList.toggle('d-none');
-                if (!messageSearchContainer.classList.contains('d-none')) {
-                    messageSearchInput.focus();
-                }
-            }
+            messageSearchContainer.classList.remove('d-none');
+            messageSearchInput.focus();
         });
     }
 
     if (closeSearchBtn) {
         closeSearchBtn.addEventListener('click', () => {
-            if(messageSearchContainer) {
-                messageSearchContainer.classList.add('d-none');
-                messageSearchInput.value = '';
-                document.querySelectorAll('.message-bubble.highlight').forEach(el => {
-                    el.classList.remove('highlight', 'active-match');
-                });
-                searchMatches = [];
-                currentMatchIndex = -1;
-                if(searchMatchCounter) searchMatchCounter.textContent = '';
-            }
+            messageSearchContainer.classList.add('d-none');
+            messageSearchInput.value = '';
+            // Clear highlights
+            searchMatches.forEach(el => el.classList.remove('highlight', 'active-match'));
+            searchMatches = [];
+            currentMatchIndex = -1;
+            searchMatchCounter.textContent = '';
         });
     }
 
@@ -647,30 +667,42 @@ if (messagesArea) {
     }
 
     function executeSearch() {
-        const searchTerm = messageSearchInput.value.toLowerCase();
+        // Clear previous search
+        searchMatches.forEach(el => el.classList.remove('highlight', 'active-match'));
         searchMatches = [];
         currentMatchIndex = -1;
-        document.querySelectorAll('.message-bubble.highlight, .message-bubble.active-match').forEach(el => el.classList.remove('highlight', 'active-match'));
 
+        const searchTerm = messageSearchInput.value.trim().toLowerCase();
         if (searchTerm.length < 2) {
-            if(searchMatchCounter) searchMatchCounter.textContent = '';
+            searchMatchCounter.textContent = '';
             return;
         }
 
-        const allMessages = messagesArea.querySelectorAll('.message-bubble');
-        allMessages.forEach(bubble => {
-            const contentWrapper = bubble.querySelector('.message-content');
-            if (contentWrapper && contentWrapper.textContent.toLowerCase().includes(searchTerm)) {
+        // Find and highlight new matches
+        const allMessageBubbles = messagesArea.querySelectorAll('.message-bubble .message-content');
+        allMessageBubbles.forEach(contentEl => {
+            if (contentEl.textContent.toLowerCase().includes(searchTerm)) {
+                const bubble = contentEl.closest('.message-bubble');
                 bubble.classList.add('highlight');
                 searchMatches.push(bubble);
             }
         });
 
         if (searchMatches.length > 0) {
-            currentMatchIndex = 0;
+            currentMatchIndex = 0; // Go to the first match
             updateSearchUI();
         } else {
-            if(searchMatchCounter) searchMatchCounter.textContent = '0/0';
+            searchMatchCounter.textContent = '0/0';
+        }
+    }
+
+    function updateSearchUI() {
+        document.querySelectorAll('.message-bubble.active-match').forEach(el => el.classList.remove('active-match'));
+        if (currentMatchIndex !== -1) {
+            const activeMatch = searchMatches[currentMatchIndex];
+            activeMatch.classList.add('active-match');
+            activeMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            searchMatchCounter.textContent = `${currentMatchIndex + 1}/${searchMatches.length}`;
         }
     }
 
@@ -686,7 +718,7 @@ if (messagesArea) {
 
     if(searchNextBtn) {
         searchNextBtn.addEventListener('click', () => {
-            if(searchMatches.length === 0) return;
+            if (searchMatches.length === 0) return;
             currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
             updateSearchUI();
         });
@@ -694,11 +726,12 @@ if (messagesArea) {
 
     if(searchPrevBtn) {
         searchPrevBtn.addEventListener('click', () => {
-            if(searchMatches.length === 0) return;
+            if (searchMatches.length === 0) return;
             currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
             updateSearchUI();
         });
     }
+
 
     if (notesBtn) {
         notesBtn.addEventListener('click', async (e) => {
@@ -878,60 +911,52 @@ if (messagesArea) {
     }
 
     // Handle form submission for the new modal
-        if (initiateForm) {
-        initiateForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+if (initiateForm) {
+    initiateForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // --- THIS IS THE CORRECTED PART ---
+        // Get the numbers directly from the Tagify instance
+        const customerPhones = tagify.value.map(tag => tag.value);
+        const templateName = initiationTemplateSelect.value;
+
+        if (customerPhones.length === 0 || !templateName) {
+            showStatusModal('خطأ في الإدخال', 'يرجى إدخال رقم هاتف واحد على الأقل واختيار قالب.', 'error');
+            setTimeout(hideStatusModal, 3000);
+            return;
+        }
+
+        const originalButtonText = sendInitiationBtn.innerHTML;
+        sendInitiationBtn.disabled = true;
+        sendInitiationBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...`;
+
+        try {
+            const response = await fetch('/api/conversations/initiate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customerPhones, templateName })
+            });
+
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'فشل إرسال الرسائل');
             
-            const numbersRaw = customerNumbersTextarea.value.trim();
-            const templateName = initiationTemplateSelect.value;
+            showStatusModal('تم بنجاح', `تم إرسال القالب بنجاح.`, 'success');
+            
+            const modalInstance = bootstrap.Modal.getInstance(initiateModalEl);
+            if(modalInstance) modalInstance.hide();
+            
+            // Clear the tags after successful submission
+            tagify.removeAllTags(); 
+            initiateForm.reset();
 
-            if (!numbersRaw || !templateName) {
-                showStatusModal('خطأ في الإدخال', 'يرجى إدخال رقم هاتف واحد على الأقل واختيار قالب.', 'error');
-                setTimeout(hideStatusModal, 3000);
-                return;
-            }
-
-            const customerPhones = numbersRaw.split(/[\n,]+/).map(num => num.trim()).filter(Boolean);
-
-            if (customerPhones.length === 0) {
-                showStatusModal('خطأ في الإدخال', 'لم يتم العثور على أرقام هواتف صالحة.', 'error');
-                setTimeout(hideStatusModal, 3000);
-                return;
-            }
-
-            const originalButtonText = sendInitiationBtn.innerHTML;
-            sendInitiationBtn.disabled = true;
-            sendInitiationBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> جاري الإرسال...`;
-
-            try {
-                // The API endpoint for initiating conversations
-                const response = await fetch('/api/conversations/initiate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customerPhones, templateName })
-                });
-
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.message || 'فشل إرسال الرسائل');
-                
-                showStatusModal('تم بنجاح', `تم إرسال القالب إلى ${customerPhones.length} رقم.`, 'success');
-                setTimeout(() => {
-                    hideStatusModal();
-                    // Using Bootstrap's own method to hide the modal
-                    const modalInstance = bootstrap.Modal.getInstance(initiateModalEl);
-                    if(modalInstance) modalInstance.hide();
-                    initiateForm.reset();
-                }, 2000);
-
-            } catch (error) {
-                showStatusModal('فشل الإرسال', error.message, 'error');
-                setTimeout(hideStatusModal, 4000);
-            } finally {
-                sendInitiationBtn.disabled = false;
-                sendInitiationBtn.innerHTML = originalButtonText;
-            }
-        });
-    }
+        } catch (error) {
+            showStatusModal('فشل الإرسال', error.message, 'error');
+        } finally {
+            sendInitiationBtn.disabled = false;
+            sendInitiationBtn.innerHTML = originalButtonText;
+        }
+    });
+}
 
     // --- 4. SOCKET.IO REAL-TIME LISTENERS ---
     socket.on('new_message', (message) => {
