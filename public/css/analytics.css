@@ -35,8 +35,8 @@
     background-color: #9299d524;
 }
 main.main-content-panel {
-    overflow-y: auto;
+    overflow-y: auto !important;
 }
-.text-secondary{
+p.card-text.text-secondary.mt-2.flex-grow-1{
     color: rgba(255, 255, 255, 0.79) !important;
 }

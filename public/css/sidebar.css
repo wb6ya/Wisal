@@ -40,6 +40,7 @@
     margin-right: var(--sidebar-width); /* Use right margin for RTL */
     flex-grow: 1;
     transition: margin-right var(--sidebar-transition-speed) ease;
+    overflow-y: auto;
 }
 
 

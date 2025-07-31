@@ -315,7 +315,9 @@ router.post('/initiate', isAuthenticated, async (req, res) => {
             console.log(`Broadcast finished. Successful: ${successfulSends}, Failed: ${failedSends}`);
 
             if (successfulSends === 0) {
-                 return res.status(500).json({ message: `Failed to send template to all ${failedSends} numbers.` });
+                 const firstFailure = results.find(r => r.status === 'rejected');
+                 const errorMessage = firstFailure.reason.response?.data?.error?.message || `Failed to send template to all ${failedSends} numbers.`;
+                 return res.status(500).json({ message: errorMessage });
             }
 
             res.status(200).json({ 
